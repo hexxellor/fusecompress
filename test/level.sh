@@ -20,11 +20,11 @@ do
   echo --- $c
   for l in `seq 1 9`
   do
-          ../fusecompress -c $c -l $l test
+          ../fusecompress -d -c $c -l $l test
           try
   done
   l=default
-  ../fusecompress -c $c test
+  ../fusecompress -d -c $c test
   try
 done
 rm -fr test

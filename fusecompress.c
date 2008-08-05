@@ -901,11 +901,12 @@ int main(int argc, char *argv[])
 	int               next_option;
 	char             *fusev[argc + 3];
 	char             *root = NULL;
-	const char* const short_options = "fhvo:c:l:";
+	const char* const short_options = "dfhvo:c:l:";
+	int detach = 1;
 
 	fusev[fusec++] = argv[0];
 #ifdef DEBUG
-	fusev[fusec++] = "-f";
+	detach = 0;
 #endif
 	fusev[fusec++] = "-o";
 	fusev[fusec++] = "nonempty,kernel_cache,default_permissions,use_ino";
@@ -950,7 +951,11 @@ int main(int argc, char *argv[])
 				break;
 			
 			case 'f':
-				fusev[fusec++] = "-f";
+				detach = 0;
+				break;
+			
+			case 'd':
+				detach = 1;
 				break;
 				
 			case -1:
@@ -961,6 +966,8 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 		}
 	} while (next_option != -1);
+
+	if(!detach) fusev[fusec++] = "-f";
 
 	argc -= optind;
 	argv += optind;
