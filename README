@@ -1,0 +1,106 @@
+FuseCompress
+	http://www.miio.net/fusecompress
+
+
+We are not responsible for any badness that may happen to you during using
+this software.
+
+News:
+	0.9.1.1 Buffer overflow from command line parsing fixed. Fix bug that
+	        caused permition problems on read-only files.
+	0.9.1 File format has been changed. It allows better cooperation with
+	      file and magic utility.
+	0.9.0 First release that can be marked as stable. Many bugs fixed.
+	0.8.8 User can choose compression method via program parameter.
+	0.8.7 Correct rename bug, don't freeze on unmounting when in debug mode.
+	0.8.6 Correct time of last status chnage, correct cleaning during unmount.
+	      Remove hard-coded minimal filesize for compressing.
+	0.8.4 Support lzo compression.
+	0.8.3 Problem with files bigger than 2GB fixed.
+	0.8.2 Write-only bug corrected.
+	0.8.1 README updated.
+	0.8   Major update. New format for storing compressed files is used.
+
+License:
+
+This program is distributed under GNU/GPL version 2 
+
+
+Todo:
+	- Optimalization
+	- 7zip compression module
+
+Instalation & compilation:
+
+make release
+
+Usage:
+
+	fusecompress [OPTIONS] /storage/directory/
+
+		-h			print this help
+		-c lzo/bz2/gz/null	choose default compression method
+		-o ...			pass arguments to fuse library
+
+	You can mount filesystem over existing directory with files.
+	Files will be compressed when you work with filesystem. Even
+	simple 'find /storage' compress them. Note that several last files
+	founded are not compressed - this is called cache and increase
+	performance on frequently accessed files. These files are compressed
+	when filesystem is unmounted.
+
+Useful parameters for fuse library:
+
+	Fuse library must be configured to support this features - configuration
+	file /etc/fuse.conf must contains at least this option: user_allow_other.
+
+	allow_other
+	
+		This option overrides the security measure restricting file access
+		to the user mounting the filesystem.  So all users (including root)
+		can access the files.  This option is by default only allowed to
+		root, but this restriction can be removed with a configuration
+		option described in the previous section.
+	
+	allow_root
+	
+		This option is similar to 'allow_other' but file access is limited
+		to the user mounting the filesystem and root.  This option and
+		'allow_other' are mutually exclusive.
+
+Tips and tricks:
+
+	How to obtain compression ratio?
+
+		Run this command in the FuseCompress(ed) directory when mounted
+		with FuseCompress:
+			du -sh
+			du -sh --apparent-size
+		First command prints total uncompressed size of all files in current directory
+		and its subdirectories while second one prints total compressed size.
+
+		When FuseCompress not running run `ls -l my_file.dat` and compare file size
+		with value abtained with `file my_file.dat`.
+
+File and magic utilities:
+
+Put this config into ~/.magic or /etc/magic file to allow file utility
+recognize FuseCompress file format:
+
+0       string  \037\135\211    FuseCompress(ed) data
+>3      byte    0x00    (null format)
+>3      byte    0x01    (bz2 format)
+>3      byte    0x02    (gz format)
+>3      byte    0x03    (lzo format)
+>3      byte    >0x03   (unknown format)
+>4      long    x       uncompressed size: %d
+
+Authors:
+
+Milan Svoboda <milan.svoboda@centrum.cz> (original author and project maintainer)
+Anders Aagaard <aagaande@gmail.com> (direct compress feature)
+
+Feel free to contact Milan Svoboda with suggestions and bug reports.
+
+Thanks to Dobos Sándor for testing.
+Thanks to Roland Kletzing for exhaustive testing and suggestions.
