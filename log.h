@@ -24,8 +24,13 @@
 
 #include <syslog.h>
 
-#define DEBUG_(fmt,...)				\
-	syslog(LOG_DEBUG, "DEBUG %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
+#ifndef DEBUG
+#define DEBUG_(fmt,...)
+#else
+#include <stdio.h>
+#define DEBUG_(fmt,...) \
+        fprintf(stderr, "DEBUG %s %d: " fmt "\n", __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
+#endif
 
 #define WARN_(fmt,...)				\
 	syslog(LOG_WARNING, "WARN %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
