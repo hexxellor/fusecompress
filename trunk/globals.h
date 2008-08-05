@@ -22,7 +22,8 @@ void *thread_compress(void *arg);
 #define TEMP "._.tmp"		/* Template is: ._.tmpXXXXXX */
 #define FUSE ".fuse_hidden"	/* Temporary FUSE file */
 
-#define COMPRESSLEVEL_BACKGROUND "wb9" /* See above, this is for background compress */
+extern char compresslevel[];
+#define COMPRESSLEVEL_BACKGROUND (compresslevel) /* See above, this is for background compress */
 
 // Gcc optimizations
 //

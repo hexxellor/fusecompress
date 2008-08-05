@@ -449,7 +449,7 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 			return FAIL;
 		}
 		
-		descriptor->handle = file->compressor->open(dup(descriptor->fd), "wb");
+		descriptor->handle = file->compressor->open(dup(descriptor->fd), compresslevel);
 		if (!descriptor->handle)
 		{
 			ERR_("failed to open compressor on fd %d file ('%s')",
