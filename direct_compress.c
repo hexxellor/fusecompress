@@ -28,6 +28,7 @@
 #include <sys/statvfs.h>
 #include <syslog.h>
 #include <errno.h>
+#include <utime.h>
  
 #include "structs.h"
 #include "globals.h"
@@ -268,11 +269,16 @@ file_t *direct_open(const char *filename, int stabile)
 int direct_close(file_t *file, descriptor_t *descriptor)
 {
 	int ret = 0;
+	struct stat stbuf;
+	struct utimbuf utim;
+	int stret;
 
 	NEED_LOCK(&file->lock);
 
 	DEBUG_("('%s')", file->filename);
 
+	stret = fstat(descriptor->fd, &stbuf);
+	
 	if (descriptor->handle)
 	{
 		assert(file->compressor);
@@ -292,6 +298,17 @@ int direct_close(file_t *file, descriptor_t *descriptor)
 		file->dontcompress = FALSE;
 	}
 
+	/* file->compressor->close() functions sometimes write data in the
+	   compression buffer to disk when, from the user's point of view,
+	   it should have already been written, thereby overwriting the
+	   times the user may have already set manually. We need to restore
+	   them. */
+	if(!stret) {
+		utim.actime = stbuf.st_atime;
+		utim.modtime = stbuf.st_mtime;
+		utime(file->filename, &utim);
+	}
+	
 	return ret;
 }
 
