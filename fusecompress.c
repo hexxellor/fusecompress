@@ -448,7 +448,8 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 	if (!descriptor)
 	{
 		CRIT_("\tno memory");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return -ENOMEM;
 	}
 
 	file = direct_open(full, TRUE);
@@ -485,7 +486,8 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 	if (res == -1)
 	{
 		CRIT_("\tfstat failed after open was ok");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return -errno;
 	}
 
 	DEBUG_("\tsize on disk: %lli", statbuf.st_size);
@@ -496,7 +498,8 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 		if (res == FAIL)
 		{
 			CRIT_("\tfile_read_header_fd failed");
-			exit(EXIT_FAILURE);
+			//exit(EXIT_FAILURE);
+			return -EIO;
 		}
 	}
 	else

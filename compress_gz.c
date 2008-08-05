@@ -40,7 +40,8 @@ static int gzClose(gzFile fd_gz)
 			return -1;
 		}
 		CRIT_("Failed to close fd_gz (gz error): %s", gzerror(fd_gz, &res));
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return -1;
 	}
 	return 0;
 }

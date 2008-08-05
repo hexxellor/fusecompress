@@ -155,6 +155,9 @@ file_t* direct_new_file(unsigned int filename_hash, const char *filename, int le
 	{
 		CRIT_("No memory!");
 		exit(EXIT_FAILURE);
+		// direct_new_file() is used by direct_open(), and there this
+		// absolutely no error handling anywhere direct_open() is used,
+		// so we have to leave this one.
 	}
 
 	file->accesses = 0;
@@ -428,7 +431,8 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 		if (ret == FAIL)
 		{
 			CRIT_("\t...failed!");
-			exit(EXIT_FAILURE);
+			//exit(EXIT_FAILURE);
+			return FAIL;
 		}
 		
 		descriptor->handle = file->compressor->open(dup(descriptor->fd), "wb");
@@ -466,7 +470,8 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	if (lseek(descriptor->fd, 0, SEEK_SET) == FAIL)
 	{
 		CRIT_("lseek failed!");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FAIL;
 	}
 	// Todo, we can speed this up by only writing the size, and not flushing
 	// it so often.
@@ -477,12 +482,14 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	if (ret == FAIL)
 	{
 		CRIT_("file_write_header failed!");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FAIL;
 	}
 	if (lseek(descriptor->fd, 0, SEEK_END) == FAIL)
 	{
 		CRIT_("lseek failed");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FAIL;
 	}
 
 	return len;
