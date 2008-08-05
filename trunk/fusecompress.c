@@ -614,7 +614,6 @@ static int fusecompress_write(const char *path, const char *buf, size_t size,
 	//
 	if ((!file->dontcompress) &&
 	    (file->size == 0) &&
-	    (size > min_filesize_direct) &&
 	    (file->accesses == 1) &&
 	    (offset == 0))
 	{
@@ -756,7 +755,6 @@ static void *fusecompress_init(void)
 			// Compress all files when reiserfs detected. Reiserfs
 			// should work really very good with small files...
 			//
-			min_filesize_direct = 0;
 			min_filesize_background = 0;
 			break;
 		default:
@@ -765,13 +763,11 @@ static void *fusecompress_init(void)
 			// than this we know that this is size of the whole
 			// file.
 			//
-			min_filesize_direct = fs.f_bsize < 4096 ?
-			                             fs.f_bsize : (4096 - 1);
 			min_filesize_background =  fs.f_bsize;
 			break;
 	}
-	DEBUG_("min_filesize_background: %d, min_filesize_direct: %d",
-		min_filesize_background, min_filesize_direct);
+	DEBUG_("min_filesize_background: %d",
+		min_filesize_background);
 
 	// Lower priority of fusecompress. This allows good interactivity for
 	// others and still keeps good data throughput.
