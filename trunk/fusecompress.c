@@ -472,7 +472,7 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 		fi->flags &= ~O_APPEND;
 	}
 
-	descriptor->fd = open(full, fi->flags);
+	descriptor->fd = file_open(full, fi->flags);
 	if (descriptor->fd == FAIL)
 	{
 		UNLOCK(&file->lock);
