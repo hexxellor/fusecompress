@@ -901,7 +901,14 @@ int main(int argc, char *argv[])
 	int               next_option;
 	char             *fusev[argc + 3];
 	char             *root = NULL;
-	const char* const short_options = "dfhvo:c:l:";
+#ifdef DEBUG
+	FILE* debugout = stderr;
+#endif
+	const char* const short_options = "dfhvo:c:l:"
+#ifdef DEBUG
+	"s:"
+#endif
+	;
 	int detach = 1;
 
 	fusev[fusec++] = argv[0];
@@ -957,6 +964,16 @@ int main(int argc, char *argv[])
 			case 'd':
 				detach = 1;
 				break;
+
+#ifdef DEBUG
+			case 's':
+				debugout = fopen(optarg, "w");
+				if(!debugout) {
+					perror("could not open debug output");
+					exit(EXIT_FAILURE);
+				}
+				break;
+#endif
 				
 			case -1:
 				break;
@@ -1028,5 +1045,10 @@ int main(int argc, char *argv[])
 	}
 
 	umask(0);
+	
+#ifdef DEBUG
+	stderr = debugout;
+#endif
+	
 	return fuse_main(fusec, fusev, &fusecompress_oper);
 }
