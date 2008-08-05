@@ -325,9 +325,20 @@ static int fusecompress_link(const char *from, const char *to)
 {
 	const char *full_from;
 	const char *full_to;
-
+	file_t* file;
+	int res;
+	
 	full_from = fusecompress_getpath(from);
 	full_to = fusecompress_getpath(to);
+	
+	file = direct_open(full_from,TRUE);
+	if(file->compressor && !do_decompress(file)) {
+		res = -errno;
+		UNLOCK(&file->lock);
+		return res;
+	}
+	file->dontcompress = TRUE;
+	UNLOCK(&file->lock);
 
 	if (link(full_from, full_to) == FAIL)
 		return -errno;
@@ -489,6 +500,10 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 		CRIT_("\tfstat failed after open was ok");
 		//exit(EXIT_FAILURE);
 		return -errno;
+	}
+	
+	if(S_ISREG(statbuf.st_mode) && statbuf.st_nlink > 1) {
+		file->dontcompress = TRUE;
 	}
 
 	DEBUG_("\tsize on disk: %zi", statbuf.st_size);
