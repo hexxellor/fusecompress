@@ -1,0 +1,22 @@
+Hardlinks:
+The second read() on file "b" in test/link.c doesn't get through to us. FUSE
+seems to assume instead that the data is still the same as when reading it
+the first time. This is a bug in FUSE, NTFS-3G exhibits the same problem. It
+is triggered by Firefox and probably other software doing funny stuff with
+hardlinks.
+If you use FuseCompress as your root filesystem, you may want to
+put /tmp in tmpfs.
+
+direct_rename():
+This function tries to reroute all pointers to the original file object to
+the new one. Subsequently it asserts that there are no more accesses to the
+original file. When running dbench I once saw that assertion fail. This is
+very hard to reproduce. May be a locking issue.
+
+errors in compressed data:
+Error handling in the compression modules is not good. For cut-off data, for
+instance, LZO returns an error on the first try, but zero on subsequent
+tries. LZMA always returns zero. This can lead to (virtually) endless loops
+in some applications. We are trying to return a serious error (EIO) if we
+detect corrupt compressed data, but that does not keep some programs from
+trying over and over.
