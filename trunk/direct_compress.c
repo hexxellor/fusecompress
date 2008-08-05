@@ -327,10 +327,10 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	//
 	// If offset is wrong, we need to close and open file in raw mode.
 	//
-	if ((offset != descriptor->offset) || (!(file->type & READ)))
+	if ((offset < descriptor->offset) || (file->size > 131072 && offset > descriptor->offset + file->size / 2) || (!(file->type & READ)))
 	{
-		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, !(file->type & READ): %d",
-			offset, descriptor->offset, (!(file->type & READ)));
+		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, size %zd, !(file->type & READ): %d",
+			offset, descriptor->offset, size, (!(file->type & READ)));
 		STAT_(STAT_FALLBACK);
 
 		DEBUG_("calling do_decompress, descriptor->fd %d",descriptor->fd);
@@ -361,12 +361,32 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		}
 	}
 
+	if(offset > descriptor->offset)
+	{
+		size_t toread = offset - descriptor->offset;
+		DEBUG_("skipping %zd to %zd before reading %zd bytes",toread,offset,size);
+		while(toread) {
+			len = file->compressor->read(descriptor->handle, buffer, toread > size ? size : toread);
+			DEBUG_("tried %zd bytes, got %d",toread > size ? size : toread,len);
+			if(len < 0) {
+				ERR_("failed to read from compressor");
+				errno = EIO;
+				return -1;
+			}
+			if(len == 0) return len; /* sought beyond the end of the file */
+			toread -= len;
+			descriptor->offset += len;
+			DEBUG_("toread %zd offset %zd",toread,descriptor->offset);
+		}
+	}
+
 	// Do actual decompressing
 	//
 	len = file->compressor->read(descriptor->handle, buffer, size);
 	if (len < 0)
 	{
 		ERR_("failed to read from compressor");
+		errno = EIO;
 		return -1;
 	}
 	descriptor->offset += len;
