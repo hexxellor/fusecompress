@@ -1,5 +1,5 @@
-CFLAGS  += $(CDEBUG) -D_REENTRANT -O2 -D_FILE_OFFSET_BITS=64 -Wall -D_POSIX_C_SOURCE=200112L -D_POSIX_SOURCE -D_SVID_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=500
-LDFLAGS += $(LDEBUG) -lpthread -lfuse -lz -lbz2
+CFLAGS  += $(CDEBUG) -D_REENTRANT -O2 -D_FILE_OFFSET_BITS=64 -Wall -D_POSIX_C_SOURCE=200112L -D_POSIX_SOURCE -D_SVID_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=500 -g
+LDFLAGS += $(LDEBUG) -lpthread -lfuse -lz -lbz2 -llzma
 
 all:
 	@echo "specify \"make release\", \"make debug\""
@@ -26,7 +26,7 @@ release: fusecompress
 release: CDEBUG=-DNDEBUG
 
 fusecompress: $(objects)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(objects)
+	$(CC) $(CFLAGS) -o $@ $(objects) $(LDFLAGS)
 
 clean:
 	rm -f $(objects)

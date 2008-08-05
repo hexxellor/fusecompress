@@ -870,7 +870,7 @@ static void print_help(void)
 
 	printf("\t-h                   print this help\n");
 	printf("\t-v                   print version\n");
-	printf("\t-c lzo/bz2/gz/null   choose default compression method\n");
+	printf("\t-c lzo/bz2/gz/lzma/null   choose default compression method\n");
 	printf("\t-o ...               pass arguments to fuse library\n\n");
 }
 

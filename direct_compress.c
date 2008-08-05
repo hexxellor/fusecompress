@@ -122,7 +122,13 @@ void _direct_open_purge(int force)
 	
 				// It's out of the database, so we can destroy it
 				//
-				direct_open_delete(file);
+				/* The background compression thread seems to still use this lock
+				   sometimes, leading to massive data corruption. This is triggered
+				   by using LZMA. The bright side is that this code here is only run
+				   on unmount, so losing a few bytes by not freeing the file
+				   descriptor won't hurt us. */
+				//direct_open_delete(file);
+				UNLOCK(&file->lock);
 				continue;
 			}
 		}			
@@ -182,7 +188,6 @@ file_t* direct_new_file(unsigned int filename_hash, const char *filename, int le
 // Returns locked database entry
 file_t *direct_open(const char *filename, int stabile)
 {
-	int          i = 0;
 	int          len;
 	int          hysteresis;
 	unsigned int hash;

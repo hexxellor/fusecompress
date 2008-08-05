@@ -27,11 +27,12 @@ compressor_t *compressor_default = NULL;
 // it is vital to sort modules according it's type. E.g. module_null
 // has type 0x0 or module_gzip has type 0x02.
 //
-compressor_t *compressors[4] = {
+compressor_t *compressors[5] = {
 	&module_null,
 	&module_bz2,
 	&module_gzip,
 	&module_lzo,
+	&module_lzma,
 };
 
 char *uncompressible[] = {
