@@ -19,8 +19,8 @@ depends := $(sources:.c=.d)
 -include $(depends)
 
 debug: fusecompress
-debug: CDEBUG=-DDEBUG -pg
-debug: LDEBUG=-pg
+debug: CDEBUG=-DDEBUG
+debug: LDEBUG=
 
 release: fusecompress
 release: CDEBUG=-DNDEBUG
