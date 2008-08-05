@@ -577,6 +577,22 @@ file_t* direct_rename(file_t *file_from, file_t *file_to)
 
 		descriptor->file = file_to;
 	}
+
+	/* same for background compression queue */
+	LOCK(&comp_database.lock);
+	compress_t* cp;
+	list_for_each_entry(cp, &comp_database.head, list)
+	{
+		if(cp->file == file_from) {
+			DEBUG_("remove %s from background queue",file_from->filename);
+			cp->file = file_to;
+			file_from->accesses--;
+			file_to->accesses++;
+		}
+	}
+	UNLOCK(&comp_database.lock);
+
+	/* FIXME: still fails sometimes; very hard to reproduce */
 	assert(file_from->accesses == 0);
 
 	// The file refered by file_from is now deleted
