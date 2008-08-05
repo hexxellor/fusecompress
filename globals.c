@@ -33,8 +33,8 @@ compressor_t *compressors[5] = {
 
 char *uncompressible[] = {
     ".mp3", ".ogg",
-    ".avi", ".mov", ".mpg",
-    ".gz", ".bz2", ".zip", ".tgz", ".lzo", ".lzma", ".rar", ".ace"
+    ".avi", ".mov", ".mpg", ".mp4", ".mkv", ".asf",
+    ".gz", ".bz2", ".zip", ".tgz", ".lzo", ".lzma", ".rar", ".ace", ".7z",
     ".jpg", ".png", ".tiff", ".gif",
     ".rpm", ".deb",
     NULL
