@@ -23,6 +23,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/fsuid.h>
+#include <ctype.h>
 
 #include <syslog.h>
 
@@ -872,6 +873,7 @@ static void print_help(void)
 	printf("\t-h                   print this help\n");
 	printf("\t-v                   print version\n");
 	printf("\t-c lzo/bz2/gz/lzma/null   choose default compression method\n");
+	printf("\t-l LEVEL             set compression level (1 to 9)\n");
 	printf("\t-o ...               pass arguments to fuse library\n\n");
 }
 
@@ -880,13 +882,15 @@ static void print_version(void)
 	printf("%s version %d.%d.%d\n", "fusecompress", 0, 9, 1);
 }
 
+char compresslevel[3] = "wbx";
+
 int main(int argc, char *argv[])
 {
 	int               fusec = 0;
 	int               next_option;
 	char             *fusev[argc + 3];
 	char             *root = NULL;
-	const char* const short_options = "hvo:c:";
+	const char* const short_options = "hvo:c:l:";
 
 	fusev[fusec++] = argv[0];
 #ifdef DEBUG
@@ -925,6 +929,15 @@ int main(int argc, char *argv[])
 				fusev[fusec++] = optarg;
 				break;
 
+			case 'l':
+				if(strlen(optarg) == 1 && isdigit(optarg[0]) && optarg[0] >= '1' && optarg[0] <= '9')
+					compresslevel[2] = optarg[0];
+				else {
+					print_help();
+					exit(EXIT_FAILURE);
+				}
+				break;
+			
 			case -1:
 				break;
 
@@ -948,6 +961,26 @@ int main(int argc, char *argv[])
 	if (!compressor_default)
 	{
 		compressor_default = &module_lzo;
+	}
+	
+	if(compresslevel[2] == 'x') {
+		switch(compressor_default->type) {
+			case 1:	/* bz2 */
+			case 2: /* gzip */
+				compresslevel[2] = '6';
+				break;
+			case 4: /* LZMA */
+				compresslevel[2] = '4';
+				break;
+			case 3: /* LZO */
+			case 0: /* null */
+				compresslevel[2] = 0; /* minilzo and null ignore compress level */
+				break;
+			default:
+				ERR_("unknonwn compressor type %d",compressor_default->type);
+				exit(EXIT_FAILURE);
+				break;
+		}
 	}
 
 	openlog("fusecompress", LOG_PERROR | LOG_CONS, LOG_USER);
