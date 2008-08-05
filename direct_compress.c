@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <syslog.h>
 #include <errno.h>
  
@@ -87,10 +88,14 @@ void _direct_open_purge(int force)
 			// file must not be deleted, must not have assigned a compressor,
 			// must be bigger than minimal size or have unknown size ( == 0) and
 			// compressor can be assigned with this file.
-			//
+			// Also, the backing FS must have at least enough space to store the
+			// file uncompressed (worst case).
+			struct statvfs stat;
 			if ((!file->deleted) &&
 			    (!file->compressor) &&
-			   ((file->size == (off_t) -1) || (file->size > min_filesize_background)) &&
+			    ((file->size == (off_t) -1) || (file->size > min_filesize_background)) &&
+			    statvfs(file->filename, &stat) == 0 &&
+			    (stat.f_bsize * stat.f_bavail >= file->size || (geteuid() == 0 && stat.f_bsize * stat.f_bfree >= file->size)) &&
 			    choose_compressor(file))
 			{
 				DEBUG_("compress file on background");
@@ -328,8 +333,10 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 			offset, descriptor->offset, (!(file->type & READ)));
 		STAT_(STAT_FALLBACK);
 
+		DEBUG_("calling do_decompress, descriptor->fd %d",descriptor->fd);
 		if (!do_decompress(file))
 		{
+			DEBUG_("do_decompress failed, descriptor->fd %d",descriptor->fd);
 			return FAIL;
 		}
 
@@ -411,8 +418,10 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 			offset, descriptor->offset, (!(file->type & WRITE)), file->accesses);
 		STAT_(STAT_FALLBACK);
 
+		DEBUG_("calling do_decompress, descriptor->fd %d",descriptor->fd);
 		if (!do_decompress(file))
 		{
+			DEBUG_("do_decompress failed, descriptor->fd %d",descriptor->fd);
 			return FAIL;
 		}
 
