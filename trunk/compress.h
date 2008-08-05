@@ -21,6 +21,7 @@
 #include "compress_bz2.h"
 #include "compress_lzo.h"
 #include "compress_null.h"
+#include "compress_lzma.h"
 
 compressor_t *choose_compressor(const file_t *file);
 
