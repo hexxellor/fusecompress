@@ -363,6 +363,7 @@ static int fusecompress_truncate(const char *path, off_t size)
 	int         ret = 0;
 	const char *full;
 	file_t     *file;
+	int fd;
 
 	full = fusecompress_getpath(path);
 
@@ -375,19 +376,41 @@ static int fusecompress_truncate(const char *path, off_t size)
 	// if size > 0, no need to run through that time consuming process
 	// when we're 0'ing a file out!)
 	//
-	if ((size > 0 ) && (!do_decompress(file)))
+	if ((size > 0 ) && file->compressor && (!do_decompress(file)))
 	{
 		ret = -errno;
 		goto out;
+	}
+	if (size == 0 && file->compressor)
+	{
+		/* we don't have to decompress, but we still have to reset the
+		   file descriptors like do_decompress() does */
+		descriptor_t* descriptor = NULL;
+		list_for_each_entry(descriptor, &file->head, list)
+		{
+			direct_close(file, descriptor);
+			lseek(descriptor->fd, 0, SEEK_SET);
+		}
+		file->compressor = NULL;
 	}
 
 	// truncate file and reset size if all ok.
 	//
-	if (truncate(full, size) == FAIL)
+	/* This is called on both truncate() and ftruncate(). Unlike truncate(),
+	   ftruncate() must work even if there are no write permissions,
+	   so we use the crowbar (file_open()). */
+	if ((fd = file_open(full, O_WRONLY)) == FAIL)
 	{
 		ret = -errno;
 		goto out;
 	}
+	if (ftruncate(fd, size) == FAIL)
+	{
+		ret = -errno;
+		close(fd);
+		goto out;
+	}
+	close(fd);
 
 	file->size = size;
 out:
