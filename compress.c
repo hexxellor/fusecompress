@@ -196,9 +196,11 @@ int do_decompress(file_t *file)
 	res = fchmod(fd_temp, stbuf.st_mode);
 	if (res == -1)
 	{
+#if 0	// some backing filesystems (vfat, for instance) do not support permissions
 		CRIT_("fchmod failed on '%s'!", file->filename);
 		//exit(EXIT_FAILURE);
 		return FALSE;
+#endif
 	}
 
 	// Rename tmpfile to real file
@@ -366,14 +368,18 @@ void do_compress(file_t *file)
 
 	res = fchown(fd_temp, statbuf.st_uid, statbuf.st_gid);
 	if (res == FAIL) {
+#if 0 // some backing filesystems (vfat, for instance) do not support users
 		ERR_("\tfailed to chown tempfile");
 		goto out;
+#endif
 	}
 
 	res = fchmod(fd_temp, statbuf.st_mode);
 	if (res == FAIL) {
+#if 0 // some backing filesystems (vfat, for instance) do not support permissions
 		ERR_("\tfailed to chmod tempfile");
 		goto out;
+#endif
 	}
 
 	res = close(fd_temp);
