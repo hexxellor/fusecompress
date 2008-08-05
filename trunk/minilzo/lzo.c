@@ -78,7 +78,7 @@ static inline void lzoclearblock(lzoBlock *block)
 static int _lzoreadblock(int fd, lzoHead *head, lzoBlock *block)
 {
 	int       r;
-	char     *p = NULL;
+	unsigned char     *p = NULL;
 	lzo_uint  usize;
 
 	if (block->usize != head->usize) {
@@ -119,7 +119,7 @@ static int _lzoreadblock(int fd, lzoHead *head, lzoBlock *block)
 	
 		usize = head->usize;
 
-		r = lzo1x_decompress_safe(p, head->psize, block->buf, &usize, NULL);
+		r = lzo1x_decompress_safe(p, head->psize, (unsigned char*)block->buf, &usize, NULL);
 		if ((r != LZO_E_OK) || (usize != head->usize)) {
 			ERR_("decompression, usize: %lu, head->usize: %lu", (unsigned long) usize, (unsigned long) head->usize);
 			free(p);
@@ -199,7 +199,7 @@ static int lzowriteblock(int fd, lzoBlock *block)
 	int      r;
 	lzo_uint out_len;
 	lzo_uint inp_len = block->psize;
-	char    *out;
+	unsigned char    *out;
 	lzoBlock block_out;
 
 	//
@@ -212,7 +212,7 @@ static int lzowriteblock(int fd, lzoBlock *block)
 		return -1;
 	}
 
-	r = lzo1x_1_compress(block->buf, block->psize, out, &out_len, wrkmem);
+	r = lzo1x_1_compress((unsigned char*)block->buf, block->psize, out, &out_len, wrkmem);
 	if (r != LZO_E_OK) {
 		ERR_("lzo1x_1_compress failed!");
 		free(out);
@@ -236,7 +236,7 @@ static int lzowriteblock(int fd, lzoBlock *block)
 		// Store compressed block to disk.
 		//
 		DEBUG_("store compressed block");
-		block_out.buf = out;
+		block_out.buf = (char*)out;
 		block_out.usize = block->psize;
 		block_out.psize = out_len;
 	}

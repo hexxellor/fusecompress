@@ -368,7 +368,7 @@ static int fusecompress_truncate(const char *path, off_t size)
 
 	full = fusecompress_getpath(path);
 
-	DEBUG_("('%s'), new size: %lld", full, size);
+	DEBUG_("('%s'), new size: %zd", full, size);
 	STAT_(STAT_TRUNCATE);
 
 	file = direct_open(full, TRUE);
@@ -491,7 +491,7 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 		return -errno;
 	}
 
-	DEBUG_("\tsize on disk: %lli", statbuf.st_size);
+	DEBUG_("\tsize on disk: %zi", statbuf.st_size);
 
 	if (statbuf.st_size >= sizeof(header_t))
 	{
@@ -511,7 +511,7 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 		file->compressor = NULL;
 	}
 
-	DEBUG_("\topened with compressor: %s, uncompressed size: %lld, fd: %d",
+	DEBUG_("\topened with compressor: %s, uncompressed size: %zd, fd: %d",
 		file->compressor ? file->compressor->name : "null",
 		statbuf.st_size, descriptor->fd);
 
@@ -522,7 +522,7 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 
 	// The file size has to be -1 (invalid) or the same as we think it is
 	//
-	DEBUG_("\tfile->size: %lli", file->size);
+	DEBUG_("\tfile->size: %zi", file->size);
 
 	// Cannot be true (it is not implemented) if writing to
 	// noncompressible file or into rollbacked file...
@@ -551,7 +551,7 @@ static int fusecompress_read(const char *path, char *buf, size_t size, off_t off
 	file_t       *file;
 	descriptor_t *descriptor;
 
-	DEBUG_("('%s') size: %d, offset: %lld", path, size, offset);
+	DEBUG_("('%s') size: %zd, offset: %zd", path, size, offset);
 	STAT_(STAT_READ);
 
 	descriptor = (descriptor_t *) fi->fh;
@@ -595,7 +595,7 @@ static int fusecompress_write(const char *path, const char *buf, size_t size,
 	file_t       *file;
 	descriptor_t *descriptor;
 
-	DEBUG_("('%s') size: %d, offset: %lld", path, size, offset);
+	DEBUG_("('%s') size: %zd, offset: %zd", path, size, offset);
 	STAT_(STAT_WRITE);
 
 	descriptor = (descriptor_t *) fi->fh;
@@ -608,7 +608,7 @@ static int fusecompress_write(const char *path, const char *buf, size_t size,
 
 	DEBUG_("\tfile->filename: %s", file->filename);
 
-	DEBUG_("offset: %lli, file->size: %lli", offset, file->size);
+	DEBUG_("offset: %zi, file->size: %zi", offset, file->size);
 
 	// Decide about type of compression applied to this file.
 	//

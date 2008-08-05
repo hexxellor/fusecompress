@@ -23,7 +23,7 @@
 
 void *nullOpen(int fd, const char *mode)
 {
-	return (void *) fd;
+	return (void *)(intptr_t) fd;
 }
 
 /**
