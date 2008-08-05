@@ -206,6 +206,7 @@ int do_decompress(file_t *file)
 
 	// Chmod file, rename file and close fd to tempfile and source
 	//
+	res = fchown(fd_temp, stbuf.st_uid, stbuf.st_gid);
 	res = fchmod(fd_temp, stbuf.st_mode);
 	if (res == -1)
 	{
