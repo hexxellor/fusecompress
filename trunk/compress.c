@@ -108,7 +108,8 @@ int do_decompress(file_t *file)
 	if (fd_source == FAIL)
 	{
 		CRIT_("open failed on '%s'", file->filename);
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FALSE;
 	}
 
 	// Try to read header.
@@ -150,7 +151,8 @@ int do_decompress(file_t *file)
 	if (fd_temp == -1)
 	{
 		CRIT_("can't create tempfile for '%s'", file->filename);
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FALSE;
 	}
 	
 	// do actual decompression of the file
@@ -178,7 +180,8 @@ int do_decompress(file_t *file)
 		file_close(&fd_temp);
 		unlink(temp);
 		CRIT_("decompression of '%s' has failed!", file->filename);
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FALSE;
 	}
 
 	// reopen all fd's (BEFORE fchmod, so we dont get any
@@ -194,7 +197,8 @@ int do_decompress(file_t *file)
 	if (res == -1)
 	{
 		CRIT_("fchmod failed on '%s'!", file->filename);
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FALSE;
 	}
 
 	// Rename tmpfile to real file
@@ -203,7 +207,8 @@ int do_decompress(file_t *file)
 	if (res == -1)
 	{
 		CRIT_("Rename failed on '%s' -> '%s'!", temp, file->filename);
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FALSE;
 	}
 	free(temp);
 
@@ -224,7 +229,8 @@ int do_decompress(file_t *file)
 	if (res == -1)
 	{
 		CRIT_("utime failed on '%s'!", file->filename);
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return FALSE;
 	}
 
 	file->compressor = NULL;
@@ -311,7 +317,8 @@ void do_compress(file_t *file)
 	temp = file_create_temp(&fd_temp);
 	if (fd_temp == FAIL) {
 		CRIT_("\tcan't create tempfile");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return;
 	}
 	DEBUG_("\tusing tempfile %s", temp);
 
@@ -372,14 +379,16 @@ void do_compress(file_t *file)
 	res = close(fd_temp);
 	if (res == FAIL) {
 		CRIT_("\tclose failed on tempfile");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return;
 	}
 	fd_temp = FAIL;
 
 	res = close(fd);
 	if (res == FAIL) {
 		CRIT_("\tclose failed");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		return;
 	}
 	fd = FAIL;
 
@@ -411,7 +420,8 @@ out:
 		res = close(fd);
 		if (res == FAIL) {
 			CRIT_("\tclose failed");
-			exit(EXIT_FAILURE);
+			//exit(EXIT_FAILURE);
+			return;
 		}
 		fd = FAIL;
 	}
@@ -420,7 +430,8 @@ out:
 		res = close(fd_temp);
 		if (res == FAIL) {
 			CRIT_("\tclose failed on tempfile");
-			exit(EXIT_FAILURE);
+			//exit(EXIT_FAILURE);
+			return;
 		}
 		fd_temp = FAIL;
 	}
@@ -429,7 +440,8 @@ out:
 		res = unlink(temp);
 		if (res == FAIL) {
 			CRIT_("\tunlink failed on tempfile");
-			exit(EXIT_FAILURE);
+			//exit(EXIT_FAILURE);
+			return;
 		}
 		free(temp);
 		temp = NULL;

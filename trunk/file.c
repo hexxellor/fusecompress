@@ -163,7 +163,9 @@ char *file_create_temp(int *fd_temp)
 	if (temp == NULL)
 	{
 		CRIT_("No memory!");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
+		*fd_temp = -1;
+		return 0;
 	}
 
 	while (fd == -1)
@@ -177,7 +179,10 @@ char *file_create_temp(int *fd_temp)
 		if (i++ > 50)
 		{
 			CRIT_("Unable to create temp file");
-			exit(EXIT_FAILURE);
+			//exit(EXIT_FAILURE);
+			free(temp);
+			*fd_temp = -1;
+			return 0;
 		}
 		if (fd == -1)
 		{
@@ -244,7 +249,7 @@ inline void file_close(int *fd)
 	if (close(*fd) == -1)
 	{
 		CRIT_("Failed to close fd!");
-		exit(EXIT_FAILURE);
+		//exit(EXIT_FAILURE);
 	};
 
 	*fd = -1;
