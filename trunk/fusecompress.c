@@ -886,14 +886,14 @@ int main(int argc, char *argv[])
 	int               next_option;
 	char             *fusev[argc + 3];
 	char             *root = NULL;
-	const char* const short_options = "hvo:c:l:";
+	const char* const short_options = "fhvo:c:l:";
 
 	fusev[fusec++] = argv[0];
 #ifdef DEBUG
 	fusev[fusec++] = "-f";
 #endif
 	fusev[fusec++] = "-o";
-	fusev[fusec++] = "nonempty,kernel_cache,default_permissions";
+	fusev[fusec++] = "nonempty,kernel_cache,default_permissions,use_ino";
 
 	do {
 		next_option = getopt(argc, argv, short_options);
@@ -934,6 +934,10 @@ int main(int argc, char *argv[])
 				}
 				break;
 			
+			case 'f':
+				fusev[fusec++] = "-f";
+				break;
+				
 			case -1:
 				break;
 
