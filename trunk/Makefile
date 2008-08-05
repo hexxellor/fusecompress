@@ -32,3 +32,6 @@ clean:
 	rm -f $(objects)
 	rm -f $(depends)
 	rm -f fusecompress
+
+test: debug
+	(cd test ; sh run_tests)

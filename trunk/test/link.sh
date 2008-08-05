@@ -1,7 +1,7 @@
 #!/bin/bash -e
 cc -o link link.c
 mkdir test
-../fusecompress test
+../fusecompress -d test
 cd test
 ../link
 cd ..
