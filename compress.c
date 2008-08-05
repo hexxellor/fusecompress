@@ -262,9 +262,9 @@ void do_compress(file_t *file)
 	DEBUG_("('%s')", file->filename);
 	STAT_(STAT_COMPRESS);
 
-	fd = open(file->filename, O_RDWR);
+	fd = file_open(file->filename, O_RDWR);
 	if (fd == FAIL) {
-		ERR_("\tfailed to open file");
+		ERR_("\tfailed to open file %s",file->filename);
 
 		// Something wrong happend, mark file as deleted to break the
 		// loop in _direct_open_purge when this function is called by it.
@@ -400,7 +400,7 @@ void do_compress(file_t *file)
 
 	res = rename(temp, file->filename);
 	if (res == FAIL) {
-		ERR_("\tfailed to rename");
+		ERR_("\tfailed to rename %s to %s",temp,file->filename);
 		goto out;
 	}
 	free(temp);
