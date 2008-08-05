@@ -77,7 +77,7 @@ void _direct_open_purge(int force)
 	{
 		LOCK(&file->lock);
 
-		DEBUG_("('%s'), accesses: %d, deleted: %d, compressor: %p, size: %lli",
+		DEBUG_("('%s'), accesses: %d, deleted: %d, compressor: %p, size: %zi",
 				file->filename, file->accesses, file->deleted,
 				file->compressor, file->size);
 
@@ -306,7 +306,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 
 	NEED_LOCK(&file->lock);
 
-	DEBUG_("('%s'), offset: %lli, descriptor->offset: %lli",
+	DEBUG_("('%s'), offset: %zi, descriptor->offset: %zi",
 				file->filename, offset, descriptor->offset);
 	STAT_(STAT_DIRECT_READ);
 
@@ -329,7 +329,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	//
 	if ((offset != descriptor->offset) || (!(file->type & READ)))
 	{
-		DEBUG_("\tfallback, offset: %lli, descriptor->offset: %lli, !(file->type & READ): %d",
+		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, !(file->type & READ): %d",
 			offset, descriptor->offset, (!(file->type & READ)));
 		STAT_(STAT_FALLBACK);
 
@@ -371,7 +371,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	}
 	descriptor->offset += len;
 
-	DEBUG_("read requested len: %d, got: %d", size, len);
+	DEBUG_("read requested len: %zd, got: %d", size, len);
 	return len;
 }
 
@@ -391,7 +391,7 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 
 	NEED_LOCK(&file->lock);
 
-	DEBUG_("('%s'), offset: %lli, descriptor->offset: %lli",
+	DEBUG_("('%s'), offset: %zi, descriptor->offset: %zi",
 				file->filename, offset, descriptor->offset);
 	STAT_(STAT_DIRECT_WRITE);
 
@@ -414,7 +414,7 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	//
 	if ((descriptor->offset != file->size) || (descriptor->offset != offset) || (!(file->type & WRITE)) || (file->accesses > 1))
 	{
-		DEBUG_("\tfallback, offset: %lli, descriptor->offset: %lli, !(file->type & WRITE): %d, file->accesses: %d",
+		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, !(file->type & WRITE): %d, file->accesses: %d",
 			offset, descriptor->offset, (!(file->type & WRITE)), file->accesses);
 		STAT_(STAT_FALLBACK);
 
@@ -464,7 +464,7 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	//
 	len = file->compressor->write(descriptor->handle, (void *)buffer, size);
 
-	DEBUG_("write requested: %d, really written: %d", size, len);
+	DEBUG_("write requested: %zd, really written: %d", size, len);
 
 	if (len == FAIL)
 	{
@@ -479,7 +479,7 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	// Write file length to file.  We can skip this here and do it on close instead?
 	// (could mean sync problems because release isn't sync'ed with close)
 	//
-	DEBUG_("setting filesize to %lld", file->size);
+	DEBUG_("setting filesize to %zd", file->size);
 
 	if (lseek(descriptor->fd, 0, SEEK_SET) == FAIL)
 	{
@@ -534,7 +534,7 @@ file_t* direct_rename(file_t *file_from, file_t *file_to)
 	NEED_LOCK(&file_to->lock);
 
 	DEBUG_("('%s' -> '%s')", file_from->filename, file_to->filename);
-	DEBUG_("\tfile_from->compressor: %p, file_from->size: %lli, file_from->accesses: %d",
+	DEBUG_("\tfile_from->compressor: %p, file_from->size: %zi, file_from->accesses: %d",
 		file_from->compressor, file_from->size, file_from->accesses);
 
 	file_to->size = file_from->size;

@@ -103,7 +103,7 @@ int do_decompress(file_t *file)
 	DEBUG_("('%s')", file->filename);
 	STAT_(STAT_DECOMPRESS);
 
-	DEBUG_("file size %d",file->size);
+	DEBUG_("file size %zd",file->size);
 	struct statvfs stat;
 	if(statvfs(file->filename, &stat) < 0)
 		return FALSE;
@@ -362,7 +362,7 @@ void do_compress(file_t *file)
 	    (file->status &  CANCEL))
 	{
 		DEBUG_("\tfile->compressor->compress(file, fd, fd_temp) failed");
-		DEBUG_("\tfilesize: %lli, file->size: %lli, file->status & CANCEL: %d",
+		DEBUG_("\tfilesize: %zi, file->size: %zi, file->status & CANCEL: %d",
 				filesize, file->size, (file->status & CANCEL));
 
 		if (file->status & CANCEL)
