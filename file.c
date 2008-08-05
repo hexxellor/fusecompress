@@ -158,7 +158,7 @@ char *file_create_temp(int *fd_temp)
 	char *temp;
 	struct timespec delay;
 
-	temp_len = sizeof(TEMP) + 6;
+	temp_len = sizeof(TEMP) + 7;
 	temp = (char *)malloc(temp_len);
 	if (temp == NULL)
 	{
@@ -168,7 +168,7 @@ char *file_create_temp(int *fd_temp)
 
 	while (fd == -1)
 	{
-		memcpy(temp, TEMP "XXXXXX", sizeof(TEMP) + sizeof("XXXXXX"));
+		memcpy(temp, TEMP "XXXXXX", sizeof(TEMP) + sizeof("XXXXXX") - 1);
 		fd = mkstemp(temp);
 
 		// Mkstemp may fail. This protects us before some misterious deadlock
