@@ -4,7 +4,6 @@
 */
 
 extern int min_filesize_background;
-extern int min_filesize_direct;
 
 extern pthread_t pt_comp;
 

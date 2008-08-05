@@ -17,10 +17,6 @@ pthread_mutexattr_t locktype;
 //
 int min_filesize_background;
 
-// Files smaller than this are not direct compressed
-//
-int min_filesize_direct;
-
 compressor_t *compressor_default = NULL;
 
 // Table of supported compressors. This is array and
