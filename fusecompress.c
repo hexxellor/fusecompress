@@ -695,6 +695,7 @@ static int fusecompress_release(const char *path, struct fuse_file_info *fi)
 	list_del(&descriptor->list);
 	file->accesses--;
 
+	DEBUG_("file_closing %s (fd %d)",path,descriptor->fd);
 	file_close(&descriptor->fd);
 	free(descriptor);
 

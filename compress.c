@@ -145,6 +145,7 @@ int do_decompress(file_t *file)
 	list_for_each_entry(descriptor, &file->head, list)
 	{
 		direct_close(file, descriptor);
+		DEBUG_("file_closing %s (fd %d)",file->filename,descriptor->fd);
 		file_close(&descriptor->fd);
 	}
 	
@@ -173,9 +174,10 @@ int do_decompress(file_t *file)
 
 	file->status |= DECOMPRESSING;
 
-	UNLOCK(&file->lock);
+	/* We cannot release file->lock here: we have closed
+	   all file descriptors on a file that is in use! Any
+	   accesses would bomb horribly. */
 	size = file->compressor->decompress(fd_source, fd_temp);
-	LOCK(&file->lock);
 
 	file->status &= ~DECOMPRESSING;
 
@@ -278,7 +280,7 @@ void do_compress(file_t *file)
 
 	fd = file_open(file->filename, O_RDWR);
 	if (fd == FAIL) {
-		ERR_("\tfailed to open file %s",file->filename);
+		ERR_("\tfailed to open file %s: %d",file->filename,errno);
 
 		// Something wrong happend, mark file as deleted to break the
 		// loop in _direct_open_purge when this function is called by it.
@@ -353,6 +355,9 @@ void do_compress(file_t *file)
 	//
 	file->status |= COMPRESSING;
 
+	/* Unlock to allow interruption. This is safe because do_compress()
+	   is only called by the background compression thread, which
+	   only runs on files that are not in use. */
 	UNLOCK(&file->lock);
 	filesize = compressor->compress(file, fd, fd_temp);
 	LOCK(&file->lock);
