@@ -15,4 +15,5 @@ for i in $u; do
   test $s -ge $size
 done
 fusermount -u test
+sleep 1
 rm -fr test
