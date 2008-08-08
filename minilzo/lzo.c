@@ -311,6 +311,7 @@ int lzoread(lzoFile *file, char *buf, unsigned buf_len)
 			return -1;
 		} else if (file->block.buf == NULL) {
 			DEBUG_("!file->block.buf");
+			/* This is not necessarily an error. */
 			goto out;
 		}
 	}

@@ -32,17 +32,23 @@
         fprintf(stderr, "DEBUG %s %d: " fmt "\n", __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
 #endif
 
+#ifdef DEBUG
+#define barf(t,x,...) fprintf(stderr, x "\n", ## __VA_ARGS__)
+#else
+#define barf(t,x...) syslog(t, x)
+#endif
+
 #define WARN_(fmt,...)				\
-	syslog(LOG_WARNING, "WARN %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
+	barf(LOG_WARNING, "WARN %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
 
 #define ERR_(fmt,...)				\
-	syslog(LOG_ERR, "ERR %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
+	barf(LOG_ERR, "ERR %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
 
 #define CRIT_(fmt,...)				\
-	syslog(LOG_CRIT, "CRIT: %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
+	barf(LOG_CRIT, "CRIT: %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
 	
 #define INFO_(fmt,...)				\
-	syslog(LOG_INFO, "INFO: %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
+	barf(LOG_INFO, "INFO: %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
 
 // ------------------- Statistics -------------------------
 

@@ -383,10 +383,21 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		size_t toread = offset - descriptor->offset;
 		DEBUG_("skipping %zd to %zd before reading %zd bytes",toread,offset,size);
 		while(toread) {
-			len = file->compressor->read(descriptor->handle, buffer, toread > size ? size : toread);
-			DEBUG_("tried %zd bytes, got %d",toread > size ? size : toread,len);
+			size_t readsize = toread > size ? size : toread;
+			len = file->compressor->read(descriptor->handle, buffer, readsize);
+			DEBUG_("tried %zd bytes, got %d (file size %zd)",readsize,len,file->size);
 			if(len < 0) {
 				ERR_("failed to read from compressor");
+				errno = EIO;
+				return -1;
+			}
+			if(len < readsize && (file->size == (off_t)-1 || descriptor->offset + len < file->size)) {
+				/* Waitaminit, this should have worked! */
+				/* (Note on the file->size -1 thing: I am
+				   assuming that if file->size == -1,
+				   something bad (probably another failed
+				   read) happened before.) */
+				ERR_("short read while skipping in compressed file %s (probably corrupt)",file->filename);
 				errno = EIO;
 				return -1;
 			}
@@ -402,7 +413,13 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	len = file->compressor->read(descriptor->handle, buffer, size);
 	if (len < 0)
 	{
-		ERR_("failed to read from compressor");
+		ERR_("failed to read from compressor (file %s)", file->filename);
+		errno = EIO;
+		return -1;
+	}
+	if (len < size && (file->size == (off_t)-1 || descriptor->offset + len < file->size)) {
+		/* Again, this should have worked. */
+		ERR_("short read in compressed file %s (probably corrupt)",file->filename);
 		errno = EIO;
 		return -1;
 	}
