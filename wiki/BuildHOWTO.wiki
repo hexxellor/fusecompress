@@ -1,0 +1,25 @@
+This page tells you how to build FuseCompress from source.
+
+== What you need ==
+  * the [http://fuse.sourceforge.net/ FUSE] library, libfuse. I am using version 2.7.2 as shipped with openSUSE 11.0. Newer version should do, too.
+  * [http://www.zlib.net/ zlib]. Any version should do.
+  * the [http://www.bzip.org/ bzip2] library, libbz2. Just take what comes with your distribution.
+  * [http://tukaani.org/lzma/ LZMA Utils] with liblzma. You need an "experimental" release (version 4.42 and up) as there is no support for compression in the older releases of the library.
+
+[http://www.oberhumer.com/opensource/lzo/ LZO] comes with FuseCompress, so you do not have to install it separately.
+
+In openSUSE, you can get all these packages by running
+{{{
+zypper in fuse-devel zlib-devel libbz2-devel lzma-alpha-devel
+}}}
+as root.
+
+(Note that even though there are FUSE implementations for several operating systems, I have only ever tested on Linux. If you get it working, leave a comment and patches, if possible/necessary.)
+
+== Compiling it ==
+
+Depending on whether you want to create a debug or a release build, enter `make debug` or `make release`. You should end up with a binary called `fusecompress`.
+
+== Running the test suite ==
+
+If you have made changes, be sure to run the test suite to check if they broke anything. Enter `make test`. Be aware that some tests create considerable load, for instance by spawning as many threads as possible to stress the filesystem. Some tests only run as root and are automatically skipped if you are running the test suite as another user.
