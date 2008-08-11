@@ -4,7 +4,7 @@ The coding style currently in use in FuseCompress is roughly:
   * braces get their own line
   * both `//` and `/* */`-style comments are allowed
 
-You can get a good approximation using ident like so:
+You can get a good approximation using indent like so:
 
 {{{
 indent -bad -bap -nbbb -bl -bls -cdw -ce -cli8 -ts8 -i8 -l112 -lc112 -ut -bli0 -npsl -npcs -nce -brs
