@@ -1,0 +1,13 @@
+The coding style currently in use in FuseCompress is roughly:
+
+  * Tab indentation, tab size 8
+  * braces get their own line
+  * both `//` and `/* */`-style comments are allowed
+
+You can get a good approximation using ident like so:
+
+{{{
+indent -bad -bap -nbbb -bl -bls -cdw -ce -cli8 -ts8 -i8 -l112 -lc112 -ut -bli0 -npsl -npcs -nce -brs
+}}}
+
+Don't blindly trust it, though, it is not very clever and lacks some features, too.
