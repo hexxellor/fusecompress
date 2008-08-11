@@ -880,7 +880,7 @@ static struct fuse_operations fusecompress_oper = {
 
 static void print_help(void)
 {
-	printf("Usage: %s [OPTIONS] /storage/directory/\n\n", "fusecompress");
+	printf("Usage: %s [OPTIONS] /storage/directory [/mount/point]\n\n", "fusecompress");
 
 	printf("\t-h                   print this help\n");
 	printf("\t-v                   print version\n");
@@ -989,12 +989,22 @@ int main(int argc, char *argv[])
 
 	argc -= optind;
 	argv += optind;
-	if (argc != 1)
+	if (argc == 1)
+	{
+		/* old syntax, only mountpoint given */
+		fusev[fusec++] = root = argv[0];
+	}
+	else if (argc == 2)
+	{
+		/* new syntax (compatible with 1.99.x), backing directory and mountpoint given */
+		fusev[fusec++] = argv[1];
+		root = argv[0];
+	}
+	else
 	{
 	    print_help();
 	    exit(EXIT_FAILURE);
 	}
-	fusev[fusec++] = root = argv[0];
 
 	// Sets the default compressor if user didn't choose one.
 	//
