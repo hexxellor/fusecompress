@@ -18,11 +18,11 @@ depends := $(sources:.c=.d)
 
 -include $(depends)
 
-debug: fusecompress
+debug: fusecompress fsck
 debug: CDEBUG=-DDEBUG
 debug: LDEBUG=
 
-release: fusecompress
+release: fusecompress fsck
 release: CDEBUG=-DNDEBUG
 
 fusecompress: $(objects)
