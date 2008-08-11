@@ -94,7 +94,7 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag)
 		return 0;	/* no regular file */
 
 	if (verbose)
-		fprintf(stderr, "checking file %s\n", fpath);
+		fprintf(stderr, "checking file %s: ", fpath);
 
 	fd = open(fpath, O_RDONLY);
 	if (fd < 0)
@@ -130,6 +130,9 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag)
 
 		if (compr->close(handle) < 0)
 			return fix(fd, fpath, FAIL_CLOSE_DECOMP);
+		
+		if (verbose)
+			fprintf(stderr, "ok\n");
 	}
 	else if (verbose)
 		fprintf(stderr, "uncompressed file, skipping\n");
@@ -177,9 +180,14 @@ int main(int argc, char **argv)
 		perror("ftw");
 		exit(1);
 	}
-	if (!errors_found)
-		return 0;	/* no errors found */
-	if (errors_found > errors_fixed)
-		return 4;	/* some errors unfixed */
+	if (!errors_found) {
+		fprintf(stderr, "no errors found\n");
+		return 0;
+	}
+	if (errors_found > errors_fixed) {
+		fprintf(stderr, "%d errors fixed, %d unfixed errors remain\n", errors_fixed, errors_found - errors_fixed);
+		return 4;
+	}
+	fprintf(stderr, "%d errors fixed\n", errors_fixed);
 	return 1;		/* errors found and fixed */
 }
