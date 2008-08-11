@@ -28,10 +28,13 @@ release: CDEBUG=-DNDEBUG
 fusecompress: $(objects)
 	$(CC) $(CFLAGS) -o $@ $(objects) $(LDFLAGS)
 
+fsck: $(objects) tools/fsck.o
+	$(CC) $(CFLAGS) -o $@ tools/fsck.o file.o globals.o compress_gz.o compress_lzo.o compress_lzma.o compress_bz2.o compress_null.o minilzo/lzo.o -llzma -lz -lbz2 -llzo2
+
 clean:
-	rm -f $(objects)
+	rm -f $(objects) tools/*.o
 	rm -f $(depends)
-	rm -f fusecompress
+	rm -f fusecompress fsck
 
 test: debug
 	(cd test ; sh run_tests)
