@@ -5,12 +5,11 @@ This page tells you how to build FuseCompress from source.
   * [http://www.zlib.net/ zlib]. Any version should do.
   * the [http://www.bzip.org/ bzip2] library, libbz2. Just take what comes with your distribution.
   * [http://tukaani.org/lzma/ LZMA Utils] with liblzma. You need an "experimental" release (version 4.42 and up) as there is no support for compression in the older releases of the library.
-
-[http://www.oberhumer.com/opensource/lzo/ LZO] comes with FuseCompress, so you do not have to install it separately.
+  * [http://www.oberhumer.com/opensource/lzo/ LZO] version 2.02 or up. minilzo works, too, but you will have to make minor adjustments to the `#include` statements in `lzo.c` and `lzo.h`.
 
 In openSUSE, you can get all these packages by running
 {{{
-zypper in fuse-devel zlib-devel libbz2-devel lzma-alpha-devel
+zypper in fuse-devel zlib-devel libbz2-devel lzma-alpha-devel lzo-devel
 }}}
 as root.
 
