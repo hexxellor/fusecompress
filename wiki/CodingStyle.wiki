@@ -3,6 +3,7 @@ The coding style currently in use in FuseCompress is roughly:
   * Tab indentation, tab size 8
   * braces get their own line
   * both `//` and `/* */`-style comments are allowed
+  * space after if, switch, while
 
 You can get a good approximation using indent like so:
 
