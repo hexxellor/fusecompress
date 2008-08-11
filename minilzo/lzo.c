@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#include "minilzo.h"
+#include <lzo/lzo1x.h>
 #include "lzo.h"
 
 // #include "../log.h"

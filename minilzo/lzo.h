@@ -12,7 +12,7 @@
 #ifndef __LZO_H
 #define __LZO_H
 
-#include "minilzo.h"
+#include <lzo/lzo1x.h>
 
 #ifdef __cplusplus
 extern "C" {
