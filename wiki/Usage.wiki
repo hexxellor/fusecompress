@@ -1,0 +1,60 @@
+Here's a little introduction on how to use FuseCompress.
+
+==Basic use==
+
+There are two basic ways to use FuseCompress. The first is
+
+{{{
+fusecompress /foo
+}}}
+
+This starts FuseCompress and mounts `/foo` as a compressed filesystem, meaning that (almost) all files you write to `/foo` will be compressed and transparently decompressed when you read them again. Once you unmount the compressed filesystem using
+
+{{{
+fusermount -u /foo
+}}}
+
+you will see the compressed files in directory `/foo` as they are actually stored on disk.
+
+The other way to use FuseCompress is
+
+{{{
+fusecompress /foo /bar
+}}}
+
+This mounts a compressed filesystem at `/bar` where you can store and retrieve transparently compressed data, but stores the actual files on disk in directory `/foo` and thus allows you to see the compressed data while the filesystem is mounted. There are not many cases where this is useful, and you will usually want to use the first method.
+
+==Choosing a compression method==
+
+By default, FuseCompress runs using [http://en.wikipedia.org/wiki/LZO LZO] compression. It is also possible to use different methods:
+
+{{{
+fusecompress -c lzma /foo
+}}}
+
+This mounts a compressed filesystem at `/foo` using [http://en.wikipedia.org/wiki/LZMA LZMA] compression. This means that all new files created (and all files that had to be uncompressed for some reason) will be compressed using LZMA. Existing files will retain whatever compression method they were created with. The other methods available are [http://en.wikipedia.org/wiki/Deflate Deflate] (`-c gz`), [http://en.wikipedia.org/wiki/bzip2 bzip2] (`-c bz2`), and null (`-c null`, only useful for debugging).
+
+==Compression level==
+
+Some compression methods (LZMA, Deflate, and bzip2) support different compression levels (1 to 9), with the lower levels being faster with lower compression ratio, and the higher levels slower (sometimes dramatically so) with higher compression ratio. The defaults are 4 for LZMA, and 6 for Deflate and bzip2. If you want to use a different level, you can use the `-l` option:
+
+{{{
+fusecompress -c lzma -l 7 /foo
+}}}
+
+There is a wiki page that tries to help you in [ChoosingYourCompressionLevel choosing your compression method and level].
+
+==FUSE options==
+
+FuseCompress allows you to pass options to FUSE using the `-o` option. Commonly used options are:
+
+  * `allow_other` - allows other users to access the files inside; by default, only the user mounting the filesystem can see the files inside
+  * `suid` and `dev` - allows SUID binaries and device files to be used inside your compressed filesystem
+
+Example:
+
+{{{
+fusecompress -o allow_other,suid,dev /
+}}}
+
+This mounts a compressed root filesystem. (*Caveat*: Do not do this unless you can make sure that your system automatically executes that command on the next reboot, _before_ using _any_ of the files in the root filesystem.)
