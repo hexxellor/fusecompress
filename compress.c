@@ -62,7 +62,7 @@ compressor_t *choose_compressor(const file_t *file)
 
 	/* don't compress already compressed file formats */
 	char* r;
-	for (ext = uncompressible; *ext != NULL; ext++)
+	for (ext = incompressible; *ext != NULL; ext++)
 		if ((r = rindex(file->filename, '.')) && !strcmp(r, *ext))
 			return NULL;
 

@@ -31,7 +31,7 @@ compressor_t *compressors[5] = {
 	&module_lzma,
 };
 
-char *uncompressible[] = {
+char *incompressible[] = {
     ".mp3", ".ogg",
     ".avi", ".mov", ".mpg", ".mp4", ".mkv", ".asf",
     ".gz", ".bz2", ".zip", ".tgz", ".lzo", ".lzma", ".rar", ".ace", ".7z",
