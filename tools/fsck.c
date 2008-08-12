@@ -1,3 +1,11 @@
+/*
+    fsck.fusecompress
+    (C) 2008 Ulrich Hecht <uli@suse.de>
+
+    This program can be distributed under the terms of the GNU GPL.
+    See the file COPYING.
+ */
+
 #include "../structs.h"
 #include "../compress.h"
 #include "../compress_lzo.h"
