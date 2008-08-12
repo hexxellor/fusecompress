@@ -84,6 +84,7 @@ typedef struct {
 					     the `list` */
 	off_t		 size;		/**< Filesize, if 0 then not read */
 	compressor_t	*compressor;	/**< NULL if file isn't compressed */
+	off_t		 skipped;	/**< Number of bytes read and discarded while seeking */
 	int		 dontcompress;
 	int		 type;
 	int		 status;

@@ -178,6 +178,7 @@ file_t* direct_new_file(unsigned int filename_hash, const char *filename, int le
 	file->compressor = NULL;
 	file->type = 0;
 	file->dontcompress = FALSE;
+	file->skipped = 0;
 	file->status = 0;
 
 	file->filename_hash = filename_hash;
@@ -314,7 +315,7 @@ int direct_close(file_t *file, descriptor_t *descriptor)
 
 int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size_t size, off_t offset)
 {
-	int len;
+	int len,ret;
 
 	assert(file);
 	assert(file->compressor);
@@ -344,10 +345,10 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	//
 	// If offset is wrong, we need to close and open file in raw mode.
 	//
-	if ((offset < descriptor->offset) || (file->size > 131072 && offset > descriptor->offset + file->size / 2) || (!(file->type & READ)))
+	if ((file->skipped > file->size * 3 && file->size > 131072 && offset != descriptor->offset) || (!(file->type & READ)))
 	{
-		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, size %zd, !(file->type & READ): %d",
-			offset, descriptor->offset, size, (!(file->type & READ)));
+		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, size %zd, !(file->type & READ): %d, file->size %zd, file->skipped %zd",
+			offset, descriptor->offset, size, (!(file->type & READ)), file->size, file->skipped);
 		STAT_(STAT_FALLBACK);
 
 		DEBUG_("calling do_decompress, descriptor->fd %d",descriptor->fd);
@@ -358,10 +359,31 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		}
 
 		file->size = -1;
+		file->skipped = 0;
 
 		return pread(descriptor->fd, buffer, size, offset);
 	}
 
+	if (offset < descriptor->offset)
+	{
+		DEBUG_("resetting offset");
+		assert(descriptor->handle);
+		ret = file->compressor->close(descriptor->handle);
+		if(ret < 0)
+		{
+			ERR_("unable to close compressor on file %s", file->filename);
+			return FAIL;
+		}
+		descriptor->offset = 0;
+		descriptor->handle = NULL;
+		ret = lseek(descriptor->fd, sizeof(header_t), SEEK_SET);
+		if(ret != sizeof(header_t))
+		{
+			ERR_("unable to seek back to beginning of compressed data on file %s", file->filename);
+			return FAIL;
+		}
+	}
+	
 	// Open file if neccesary
 	//
 	if (!descriptor->handle)
@@ -404,6 +426,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 			if(len == 0) return len; /* sought beyond the end of the file */
 			toread -= len;
 			descriptor->offset += len;
+			file->skipped += len;
 			DEBUG_("toread %zd offset %zd",toread,descriptor->offset);
 		}
 	}
