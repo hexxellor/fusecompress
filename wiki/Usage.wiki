@@ -49,12 +49,13 @@ There is a wiki page that tries to help you in [ChoosingYourCompressionLevel cho
 FuseCompress allows you to pass options to FUSE using the `-o` option. Commonly used options are:
 
   * `allow_other` - allows other users to access the files inside; by default, only the user mounting the filesystem can see the files inside
+  * `exec` - allows execution of files on the compressed filesystem
   * `suid` and `dev` - allows SUID binaries and device files to be used inside your compressed filesystem
 
 Example:
 
 {{{
-fusecompress -o allow_other,suid,dev /
+fusecompress -o allow_other,exec,suid,dev /
 }}}
 
 This mounts a compressed root filesystem. (*Caveat*: Do not do this unless you can make sure that your system automatically executes that command on the next reboot, _before_ using _any_ of the files in the root filesystem.)
