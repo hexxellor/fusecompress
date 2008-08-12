@@ -18,17 +18,17 @@ depends := $(sources:.c=.d)
 
 -include $(depends)
 
-debug: fusecompress fsck
+debug: fusecompress fsck.fusecompress
 debug: CDEBUG=-DDEBUG
 debug: LDEBUG=
 
-release: fusecompress fsck
+release: fusecompress fsck.fusecompress
 release: CDEBUG=-DNDEBUG
 
 fusecompress: $(objects)
 	$(CC) $(CFLAGS) -o $@ $(objects) $(LDFLAGS)
 
-fsck: $(objects) tools/fsck.o
+fsck.fusecompress: $(objects) tools/fsck.o
 	$(CC) $(CFLAGS) -o $@ tools/fsck.o file.o globals.o compress_gz.o compress_lzo.o compress_lzma.o compress_bz2.o compress_null.o minilzo/lzo.o -llzma -lz -lbz2 -llzo2
 
 clean:

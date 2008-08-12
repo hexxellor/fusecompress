@@ -5,6 +5,7 @@
 #include "../compress_bz2.h"
 #include "../compress_gz.h"
 #include "../file.h"
+#include "../globals.h"
 
 #include <ftw.h>
 #include <stdlib.h>
@@ -25,9 +26,10 @@
 #define FAIL_READ_DECOMP 5
 #define SHORT_READ_DECOMP 6
 #define FAIL_CLOSE_DECOMP 7
+#define STALE_TEMP 8
 
 /* FIXME: not very clean */
-const char compresslevel[] = "wbx";
+char compresslevel[] = "wbx";
 int compress_testcancel(void *x)
 {
 	return 0;
@@ -71,6 +73,11 @@ int fix(int fd, const char *fpath, int error)
 			do_unlink(fpath);
 			break;
 
+		case STALE_TEMP:
+			fprintf(stderr, "%s: stale temporary file\n", fpath);
+			do_unlink(fpath);
+			break;
+			
 		default:
 			fprintf(stderr, "unknown error %d, ignored\n", error);
 			break;
@@ -81,7 +88,7 @@ int fix(int fd, const char *fpath, int error)
 
 /* check file for errors in compressed data
    everything that is not a FuseCompress-compressed regular file is ignored */
-int checkfile(const char *fpath, const struct stat *sb, int typeflag)
+int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW* ftwbuf)
 {
 	int fd, res;
 	unsigned char m[3];
@@ -100,6 +107,11 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag)
 	if (fd < 0)
 		return fix(fd, fpath, FAIL_OPEN);
 
+	if (strncmp(&fpath[ftwbuf->base], TEMP, sizeof(TEMP) - 1) == 0  ||
+	    strncmp(&fpath[ftwbuf->base], FUSE, sizeof(FUSE) - 1) == 0)
+	    	return fix(fd, fpath, STALE_TEMP);
+
+	m[0] = m[1] = m[2] = 0;
 	if (read(fd, m, 3) < 0)
 		return fix(fd, fpath, FAIL_READ);
 
@@ -175,9 +187,9 @@ int main(int argc, char **argv)
 	if (optind >= argc)
 		usage(argv[0]);
 
-	if (ftw(argv[optind], checkfile, MAXOPENFD) < 0)
+	if (nftw(argv[optind], checkfile, MAXOPENFD, FTW_MOUNT|FTW_PHYS) < 0)
 	{
-		perror("ftw");
+		perror("nftw");
 		exit(1);
 	}
 	if (!errors_found) {
