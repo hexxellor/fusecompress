@@ -41,9 +41,9 @@ fusecompress_offline: $(objects_common) $(objects_offline)
 	$(CC) $(CFLAGS) -o $@ $(objects_common) $(objects_offline) $(LDFLAGS)
 
 clean:
-	rm -f $(objects_common) $(objects_fs) $(objects_fsck) $(objects_offline) tools/*.o
+	rm -f $(objects_common) $(objects_fs) $(objects_fsck) $(objects_offline)
 	rm -f $(depends)
-	rm -f fusecompress fsck
+	rm -f fusecompress fsck.fusecompress fusecompress_offline
 
 test: debug
 	(cd test ; sh run_tests)
