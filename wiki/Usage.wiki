@@ -24,6 +24,8 @@ fusecompress /foo /bar
 
 This mounts a compressed filesystem at `/bar` where you can store and retrieve transparently compressed data, but stores the actual files on disk in directory `/foo` and thus allows you to see the compressed data while the filesystem is mounted. There are not many cases where this is useful, and you will usually want to use the first method.
 
+*_WARNING_:* Mounting FuseCompress filesystems over their backing directory (first method) can lead to lockups when using libfuse 2.7.x. (See issue #14.) This problem does not seem to occur when using separate mount points and backing directories (second method) or with libfuse 2.8.0pre1.
+
 ==Choosing a compression method==
 
 By default, FuseCompress runs using [http://en.wikipedia.org/wiki/LZO LZO] compression. It is also possible to use different methods:
