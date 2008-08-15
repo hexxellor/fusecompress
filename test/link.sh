@@ -7,3 +7,4 @@ cd test
 cd ..
 fusermount -u test
 rm -fr test
+rm link

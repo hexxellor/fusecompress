@@ -10,4 +10,4 @@ do
 	cmp in and_in_again
 	rm back_in out back_out and_in_again
 done
-rm in
+rm in tc

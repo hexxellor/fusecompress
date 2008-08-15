@@ -8,3 +8,4 @@ cd ..
 fusermount -u test
 sleep 1
 rm -fr test
+rm truncorrupt
