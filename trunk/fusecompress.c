@@ -24,6 +24,7 @@
 #include <sys/resource.h>
 #include <sys/fsuid.h>
 #include <ctype.h>
+#include <limits.h>
 
 #include <syslog.h>
 
@@ -1033,6 +1034,42 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* try to raise RLIMIT_NOFILE to fs.file-max */
+	struct rlimit rl;
+	char buf[80];
+	int fd = open("/proc/sys/fs/file-max",O_RDONLY);
+	if (fd < 0)
+	{
+		WARN_("failed to read fs.file-max attribute");
+		goto trysomethingelse;
+	}
+	if (read(fd, buf, 80) < 0)
+	{
+		close(fd);
+		goto trysomethingelse;
+	}
+	close(fd);
+	rl.rlim_cur = rl.rlim_max = atol(buf);
+	DEBUG_("setting fd limit to %zd", rl.rlim_cur);
+	if (setrlimit(RLIMIT_NOFILE, &rl) < 0)
+	{
+		if (geteuid() == 0)
+			WARN_("failed to set file descriptor limit to fs.file-max: %s", strerror(errno));
+trysomethingelse:
+		if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
+		{
+			WARN_("failed to get file descriptor limit: %s", strerror(errno));
+		}
+		else
+		{
+			/* try to raise limit as far as possible */
+			DEBUG_("setting fd limit to %zd (now %zd)", rl.rlim_max, rl.rlim_cur);
+			rl.rlim_cur = rl.rlim_max;
+			if (setrlimit(RLIMIT_NOFILE, &rl) < 0)
+				WARN_("failed to set file descriptor limit to maximum: %s", strerror(errno));
+		}
+	}
+	
 	openlog("fusecompress", LOG_PERROR | LOG_CONS, LOG_USER);
 #ifndef DEBUG
 	setlogmask(LOG_UPTO(LOG_INFO));
