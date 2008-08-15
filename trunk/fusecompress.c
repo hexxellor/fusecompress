@@ -1,8 +1,9 @@
 /*
     FuseCompress
     Copyright (C) 2005 Milan Svoboda <milan.svoboda@centrum.cz>
+    Copyright (C) 2008 Ulrich Hecht <uli@suse.de>
 
-    This program can be distributed under the terms of the GNU GPL.
+    This program can be distributed under the terms of the GNU GPL v2.
     See the file COPYING.
 */
 
