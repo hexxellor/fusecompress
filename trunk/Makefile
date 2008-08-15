@@ -1,5 +1,11 @@
 CFLAGS  += $(CDEBUG) -D_REENTRANT -O2 -D_FILE_OFFSET_BITS=64 -Wall -D_POSIX_C_SOURCE=200112L -D_POSIX_SOURCE -D_SVID_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=500 -g
-LDFLAGS += $(LDEBUG) -lz -lbz2 -llzma -llzo2
+LDFLAGS += $(LDEBUG) -lz -lbz2 -llzma
+
+ifeq ($(LDFLAGS_LZO),)
+LDFLAGS += -llzo2
+else
+LDFLAGS += $(LDFLAGS_LZO)
+endif
 
 all:
 	@echo "specify \"make release\", \"make debug\""
