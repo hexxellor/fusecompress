@@ -19,6 +19,7 @@
 #include <sys/syslog.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <asm/byteorder.h>
 
 #include "direct_compress.h"
 #include "globals.h"
@@ -70,7 +71,7 @@ int file_write_header(int fd, compressor_t *compressor, off_t size)
 	fh.id[1] = '\135';
 	fh.id[2] = '\211';
 	fh.type = compressor->type;
-	fh.size = size;
+	fh.size = __cpu_to_le64(size);
 
 	return write(fd, &fh, sizeof(fh));
 }
@@ -102,6 +103,7 @@ int file_read_header_fd(int fd, compressor_t **compressor, off_t *size)
 
 	if (r == sizeof(fh))
 	{
+		fh.size = __le64_to_cpu(fh.size);
 		header_compressor = file_compressor(&fh);
 		if (header_compressor)
 		{
