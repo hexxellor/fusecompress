@@ -38,10 +38,6 @@ for comp in ['lzo','lzma','gz','bz2','null']:
     os.unlink('log.'+comp)
     continue
 
-  a.close()
-  os.system('fusermount -z -u test')
-  time.sleep(1)
-  shutil.rmtree('test')
   os.abort()
 
 sys.exit(0)

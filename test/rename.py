@@ -22,7 +22,8 @@ def fn(i): return 'test/file'+str(i)
 def rf(): return fn(random.randint(0,files))
 
 quit = False
-def out():
+
+def out_ok():
   global quit
   quit = True
   time.sleep(.1)
@@ -32,13 +33,9 @@ def out():
       shutil.rmtree('test')
       break
     except: pass
-
-def out_ok():
-  out()
   sys.exit(0)
 
 def out_barf():
-  out()
   os.abort()
     
 Timer(30,out_ok).start()

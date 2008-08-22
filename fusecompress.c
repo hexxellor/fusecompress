@@ -898,12 +898,17 @@ static void print_version(void)
 
 char compresslevel[3] = "wbx";
 
+#define MAX_OPTS 50
 int main(int argc, char *argv[])
 {
 	int               fusec = 0;
 	int               next_option;
-	char             *fusev[argc + 3];
+	char             *fusev[argc + MAX_OPTS];
 	char             *root = NULL;
+	char             *fs_opts = NULL;
+	char             *o;
+	int               ret;
+	
 #ifdef DEBUG
 	FILE* debugout = stderr;
 #endif
@@ -921,7 +926,15 @@ int main(int argc, char *argv[])
 	fusev[fusec++] = "-o";
 	fusev[fusec++] = "nonempty,kernel_cache,default_permissions,use_ino";
 
+	root_fs = 0;
+	read_only = 0;
+	
 	do {
+		if (fusec >= argc + MAX_OPTS - 2)
+		{
+			ERR_("too many options");
+			exit(EXIT_FAILURE);
+		}
 		next_option = getopt(argc, argv, short_options);
 		switch (next_option)
 		{
@@ -947,8 +960,42 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 
 			case 'o':
-				fusev[fusec++] = "-o";
-				fusev[fusec++] = optarg;
+				/* strsep() modifies the string, so we need to copy it */
+				fs_opts = strdup(optarg);
+				while (fs_opts)
+				{
+					o = strsep(&fs_opts, ",");
+					if (!strcmp(o, "ro") || !strcmp(o, "rw"))
+					{
+						fusev[fusec++] = "-o";
+						fusev[fusec++] = o;
+						if (o[1] == 'o') read_only = 1;
+						else read_only = 0;
+					}
+					else if (!strcmp(o, "uncompressed_binaries"))
+					{
+						root_fs = 1;
+					}
+					else if (!strcmp(o, "detach"))
+					{
+						detach = 1;
+					}
+					else if (!strcmp(o, "nodetach"))
+					{
+						detach = 0;
+					}
+					else if (!strcmp(o, "lzo") || !strcmp(o, "lzma") || !strcmp(o, "bz2") || !strcmp(o, "gz") || !strcmp(o, "null"))
+					{
+						compressor_default = find_compressor_name(o);
+					}
+					else
+					{
+						fusev[fusec++] = "-o";
+						fusev[fusec++] = o;
+					}
+				}
+				/* fs_opts gets lost here, but there is no proper way of freeing it anyway
+				   because it is used by fuse_main() */
 				break;
 
 			case 'l':
@@ -1099,5 +1146,9 @@ trysomethingelse:
 	stderr = debugout;
 #endif
 	
-	return fuse_main(fusec, fusev, &fusecompress_oper);
+	ret = fuse_main(fusec, fusev, &fusecompress_oper);
+	
+	if (fs_opts) free(fs_opts);
+	
+	return ret;
 }

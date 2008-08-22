@@ -24,6 +24,8 @@ do
 			rm $i.log
 		else
 			echo "FAIL"
+			fusermount -z -u test
+			mv test test.$i
 			fail=1
 		fi
 	else

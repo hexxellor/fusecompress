@@ -4,6 +4,8 @@
 */
 
 extern int min_filesize_background;
+extern int root_fs;
+extern int read_only;
 
 extern pthread_t pt_comp;
 
@@ -12,6 +14,7 @@ extern pthread_mutexattr_t locktype;
 extern compressor_t *compressor_default;
 extern compressor_t *compressors[5];
 extern char *incompressible[];
+extern char *mmapped_dirs[];
 
 extern database_t database;
 extern database_t comp_database;
