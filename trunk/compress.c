@@ -73,6 +73,23 @@ compressor_t *choose_compressor(const file_t *file)
 	if (strstr(file->filename, FUSE))
 		return NULL;
 
+	/* ignore binaries and shared objects when mounted at / or /usr */
+	if (root_fs)
+	{
+		for (ext = mmapped_dirs; *ext != NULL; ext++)
+		{
+			DEBUG_("file->filename %s, ext %s", file->filename, *ext);
+			if (strncmp(file->filename, *ext, strlen(*ext)) == 0)
+				return NULL;
+		}
+		if ((r = rindex(file->filename, '.')))
+		{
+			if (!strcmp(r, ".so")) /* name ends with .so */
+				return NULL;
+			if (strstr(file->filename, ".so.")) /* name contains .so. */
+				return NULL;
+		}
+	}
 	/* TODO: decide about compressor and it's compression level from size */
 	return compressor_default;
 }

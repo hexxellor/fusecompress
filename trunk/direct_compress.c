@@ -97,6 +97,7 @@ void _direct_open_purge(int force)
 			    ((file->size == (off_t) -1) || (file->size > min_filesize_background)) &&
 			    statvfs(file->filename, &stat) == 0 &&
 			    (stat.f_bsize * stat.f_bavail >= file->size || (geteuid() == 0 && stat.f_bsize * stat.f_bfree >= file->size)) &&
+			    !read_only &&
 			    choose_compressor(file))
 			{
 				DEBUG_("compress file on background");
@@ -345,7 +346,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	//
 	// If offset is wrong, we need to close and open file in raw mode.
 	//
-	if ((file->skipped > file->size * 3 && file->size > 131072 && offset != descriptor->offset) || (!(file->type & READ)))
+	if (!read_only && ( (file->skipped > file->size * 3 && file->size > 131072 && offset != descriptor->offset) || (!(file->type & READ)) ) )
 	{
 		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, size %zd, !(file->type & READ): %d, file->size %zd, file->skipped %zd",
 			offset, descriptor->offset, size, (!(file->type & READ)), file->size, file->skipped);
@@ -465,7 +466,8 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	assert(file->compressor);
 	assert(descriptor);
 	assert(descriptor->fd != -1);
-
+	assert(!read_only);
+	
 	NEED_LOCK(&file->lock);
 
 	DEBUG_("('%s'), offset: %zi, descriptor->offset: %zi",

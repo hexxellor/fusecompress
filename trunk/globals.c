@@ -17,6 +17,8 @@ pthread_mutexattr_t locktype;
 //
 int min_filesize_background;
 
+int read_only;	/* set if mounted read-only to avoid temporary decompression of files */
+
 compressor_t *compressor_default = NULL;
 
 // Table of supported compressors. This is array and
@@ -38,6 +40,11 @@ char *incompressible[] = {
     ".jpg", ".png", ".tiff", ".gif",
     ".rpm", ".deb",
     NULL
+};
+
+int root_fs;	/* set if you do not want to compress shared objects or binaries in mmapped_dirs[] */
+char *mmapped_dirs[] = {
+    "bin/", "sbin/", "usr/bin/", "usr/sbin/", NULL
 };
 
 database_t database = {
