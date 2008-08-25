@@ -717,11 +717,14 @@ file_t* direct_rename(file_t *file_from, file_t *file_to)
 	}
 	UNLOCK(&comp_database.lock);
 
-	/* FIXME: still fails sometimes; very hard to reproduce */
-	assert(file_from->accesses == 0);
+	/* Normally, file_from->accesses is 0 here. In some cases it is
+	   still 1 because thread_compress() has already removed the file
+	   from the database with the intention of compressing it. It will
+	   not do so, however, because we mark the file as deleted before
+	   releasing the lock on it, so this case is OK, too. */
+	assert(file_from->accesses <= 1);
 
 	// The file refered by file_from is now deleted
-	//
 	direct_delete(file_from);
 
 	return file_to;
