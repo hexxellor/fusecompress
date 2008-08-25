@@ -18,6 +18,9 @@ pthread_mutexattr_t locktype;
 int min_filesize_background;
 
 int read_only;	/* set if mounted read-only to avoid temporary decompression of files */
+int cache_decompressed_data;
+int decomp_cache_size;
+int max_decomp_cache_size;
 
 compressor_t *compressor_default = NULL;
 

@@ -928,6 +928,9 @@ int main(int argc, char *argv[])
 
 	root_fs = 0;
 	read_only = 0;
+	cache_decompressed_data = 0;
+	decomp_cache_size = 0;
+	max_decomp_cache_size = 100 * 1024 * 1024;
 	
 	do {
 		if (fusec >= argc + MAX_OPTS - 2)
@@ -975,6 +978,10 @@ int main(int argc, char *argv[])
 					else if (!strcmp(o, "uncompressed_binaries"))
 					{
 						root_fs = 1;
+					}
+					else if (!strcmp(o, "cache_skipped"))
+					{
+						cache_decompressed_data = 1;
 					}
 					else if (!strcmp(o, "detach"))
 					{
