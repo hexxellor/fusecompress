@@ -131,6 +131,22 @@ int do_decompress(file_t *file)
 		}
 	}
 
+	if (file->cache)
+	{
+		int i;
+		for (i = 0; i < file->cache_size ; i++)
+		{
+			if (file->cache[i])
+			{
+				decomp_cache_size -= DC_PAGE_SIZE;
+				free(file->cache[i]);
+			}
+		}
+		file->cache = NULL;
+		file->cache_size = 0;
+		DEBUG_("decomp_cache_size %d", decomp_cache_size);
+	}
+	
 	// Open file
 	//
 	fd_source = file_open(file->filename, O_RDWR);

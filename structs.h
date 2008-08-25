@@ -88,6 +88,9 @@ typedef struct {
 	int		 dontcompress;
 	int		 type;
 	int		 status;
+	
+	void**           cache;
+	int              cache_size;
 
 	pthread_mutex_t	lock;
 	pthread_cond_t cond;

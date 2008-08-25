@@ -56,6 +56,19 @@ void direct_open_delete(file_t *file)
 	UNLOCK(&file->lock);
 	pthread_mutex_destroy(&file->lock);
 
+	if (file->cache)
+	{
+		int i;
+		for (i = 0; i < file->cache_size; i++)
+		{
+			if (file->cache[i])
+			{
+				decomp_cache_size -= DC_PAGE_SIZE;
+				free(file->cache[i]);
+			}
+		}
+		DEBUG_("decomp_cache_size %d", decomp_cache_size);
+	}
 	free(file);
 }
 
@@ -182,6 +195,9 @@ file_t* direct_new_file(unsigned int filename_hash, const char *filename, int le
 	file->skipped = 0;
 	file->status = 0;
 
+	file->cache = NULL;
+	file->cache_size = 0;
+	
 	file->filename_hash = filename_hash;
 	file->filename = (char *) file + sizeof(file_t);
 	memcpy(file->filename, filename, len);
@@ -322,6 +338,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	assert(file->compressor);
 	assert(descriptor);
 	assert(descriptor->fd != -1);
+	assert(offset % DC_PAGE_SIZE == 0);
 
 	NEED_LOCK(&file->lock);
 
@@ -340,13 +357,32 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		file->type = READ;
 	}
 
+	size_t s = 0;
+	if (cache_decompressed_data && (file->type & READ) && file->cache && file->cache[offset / DC_PAGE_SIZE])
+	{
+		DEBUG_("serving data from cache at offset %zd", offset);
+		while(size && file->cache[offset / DC_PAGE_SIZE])
+		{
+			memcpy(buffer, file->cache[offset / DC_PAGE_SIZE], DC_PAGE_SIZE);
+			free(file->cache[offset / DC_PAGE_SIZE]);
+			file->cache[offset / DC_PAGE_SIZE] = NULL;
+			decomp_cache_size -= DC_PAGE_SIZE;
+			size -= DC_PAGE_SIZE;
+			buffer += DC_PAGE_SIZE;
+			offset += DC_PAGE_SIZE;
+			s += DC_PAGE_SIZE;
+		}
+		DEBUG_("decomp_cache_size %d", decomp_cache_size);
+		if (!size) return s;
+	}
 	// Decompress file if:
 	//  - user wants to read from somewhere else
 	//  - user wants to read when he was writing to file before
 	//
 	// If offset is wrong, we need to close and open file in raw mode.
 	//
-	if (!read_only && ( (file->skipped > file->size * 3 && file->size > 131072 && offset != descriptor->offset) || (!(file->type & READ)) ) )
+	if ((!cache_decompressed_data || decomp_cache_size > max_decomp_cache_size) &&
+	    !read_only && ( (file->skipped > file->size * 3 && file->size > 131072 && offset != descriptor->offset) || (!(file->type & READ)) ) )
 	{
 		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, size %zd, !(file->type & READ): %d, file->size %zd, file->skipped %zd",
 			offset, descriptor->offset, size, (!(file->type & READ)), file->size, file->skipped);
@@ -362,7 +398,9 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		file->size = -1;
 		file->skipped = 0;
 
-		return pread(descriptor->fd, buffer, size, offset);
+		ret = pread(descriptor->fd, buffer, size, offset);
+		if (ret < 0) return ret;
+		else return s + ret;
 	}
 
 	if (offset < descriptor->offset)
@@ -404,10 +442,35 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	if(offset > descriptor->offset)
 	{
 		size_t toread = offset - descriptor->offset;
+		void* skipbuf = buffer;
+		if (cache_decompressed_data && !file->cache)
+		{
+			file->cache_size = file->size / DC_PAGE_SIZE + 1;
+			file->cache = calloc(file->cache_size, sizeof(void*));
+			if (!file->cache)
+			{
+				ERR_("out of memory");
+				return -1;
+			}
+		}
 		DEBUG_("skipping %zd to %zd before reading %zd bytes",toread,offset,size);
 		while(toread) {
-			size_t readsize = toread > size ? size : toread;
-			len = file->compressor->read(descriptor->handle, buffer, readsize);
+			size_t readsize = toread > DC_PAGE_SIZE ? DC_PAGE_SIZE : toread;
+			
+			if (cache_decompressed_data && decomp_cache_size < max_decomp_cache_size)
+			{
+				decomp_cache_size += DC_PAGE_SIZE;
+				skipbuf = malloc(DC_PAGE_SIZE);
+				if (!skipbuf)
+				{
+					ERR_("out of memory");
+					return -1;
+				}
+			}
+			else
+				skipbuf = buffer;
+			
+			len = file->compressor->read(descriptor->handle, skipbuf, readsize);
 			DEBUG_("tried %zd bytes, got %d (file size %zd)",readsize,len,file->size);
 			if(len < 0) {
 				ERR_("failed to read from compressor");
@@ -426,10 +489,13 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 			}
 			if(len == 0) return len; /* sought beyond the end of the file */
 			toread -= len;
+			if (cache_decompressed_data && skipbuf != buffer)
+				file->cache[descriptor->offset / DC_PAGE_SIZE] = skipbuf;
 			descriptor->offset += len;
 			file->skipped += len;
 			DEBUG_("toread %zd offset %zd",toread,descriptor->offset);
 		}
+		DEBUG_("decomp_cache_size %d", decomp_cache_size);
 	}
 
 	// Do actual decompressing
@@ -450,7 +516,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	descriptor->offset += len;
 
 	DEBUG_("read requested len: %zd, got: %d", size, len);
-	return len;
+	return len + s;
 }
 
 /*
