@@ -36,6 +36,8 @@ fusecompress -c lzma /foo
 
 This mounts a compressed filesystem at `/foo` using [http://en.wikipedia.org/wiki/LZMA LZMA] compression. This means that all new files created (and all files that had to be uncompressed for some reason) will be compressed using LZMA. Existing files will retain whatever compression method they were created with. The other methods available are [http://en.wikipedia.org/wiki/Deflate Deflate] (`-c gz`), [http://en.wikipedia.org/wiki/bzip2 bzip2] (`-c bz2`), and null (`-c null`, only useful for debugging).
 
+It is also possible to give the compression level as a filesystem option (see below), which is helpful when mounting FuseCompress filesystems from /etc/fstab.
+
 ==Compression level==
 
 Some compression methods (LZMA, Deflate, and bzip2) support different compression levels (1 to 9), with the lower levels being faster with lower compression ratio, and the higher levels slower (sometimes dramatically so) with higher compression ratio. The defaults are 4 for LZMA, and 6 for Deflate and bzip2. If you want to use a different level, you can use the `-l` option:
@@ -53,11 +55,15 @@ FuseCompress allows you to pass options to FUSE using the `-o` option. Commonly 
   * `allow_other` - allows other users to access the files inside; by default, only the user mounting the filesystem can see the files inside
   * `exec` - allows execution of files on the compressed filesystem
   * `suid` and `dev` - allows SUID binaries and device files to be used inside your compressed filesystem
+  * `lzo`, `gz`, `lzma`, and `bzip2` select the corresponding compression method. This way of specifying it works better in /etc/fstab.
+  * `cache_skipped` causes FuseCompress to cache the decompressed data it comes along while seeking for another bit of data. This avoids repeated decompression (and possibly recompression) of files on random read accesses. This is a new feature and has not yet been extensively tested, but its use is highly recommended anyway, especially in combination with advanced algorithms such as LZMA, where decompression and especially recompression take an awful long time.
+  * `uncompressed_binaries` tells FuseCompress not to compress files in the standard binary directories (such as `/bin`, `/usr/bin`, `/sbin`, etc.) or shared objects (files with `.so` in their names). This option is probably only useful if you do not want to use `cache_skipped`. The idea is to prevent the permanent decompression and recompression of frequently used binaries, which will not usually occur when using `cache_skipped`.
+  * `detach` and `nodetach` force FuseCompress to run in the background or in the foreground, respectively. If these options are not given, release builds will detach, while debug builds will not.
 
 Example:
 
 {{{
-fusecompress -o allow_other,exec,suid,dev /
+fusecompress -o allow_other,gz,cache_skipped,exec,suid,dev /
 }}}
 
-This mounts a compressed root filesystem. (*Caveat*: Do not do this unless you can make sure that your system automatically executes that command on the next reboot, _before_ using _any_ of the files in the root filesystem.)
+This mounts a compressed root filesystem using Deflate compression and with caching of uncompressed data. (*Caveat*: Do not do this unless you can make sure that your system automatically executes that command on the next reboot, _before_ using _any_ of the files in the root filesystem.)
