@@ -698,7 +698,9 @@ static int fusecompress_release(const char *path, struct fuse_file_info *fi)
 	file->accesses--;
 
 	DEBUG_("file_closing %s (fd %d)",path,descriptor->fd);
-	file_close(&descriptor->fd);
+	/* file may have already been closed by a failing do_decompress() */
+	if (descriptor->fd != -1)
+	 	file_close(&descriptor->fd);
 	free(descriptor);
 
 	UNLOCK(&file->lock);
