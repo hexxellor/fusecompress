@@ -105,7 +105,7 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	void *handle;
 	char buf[BUFSIZE];
 
-	if (typeflag != FTW_F)
+	if (!S_ISREG(sb->st_mode))
 		return 0;	/* no regular file */
 
 	if (verbose)
