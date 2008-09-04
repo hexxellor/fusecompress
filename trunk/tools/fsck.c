@@ -35,6 +35,7 @@
 #define SHORT_READ_DECOMP 6
 #define FAIL_CLOSE_DECOMP 7
 #define STALE_TEMP 8
+#define TRUNCATE_HERE 9
 
 /* FIXME: not very clean */
 char compresslevel[] = "wbx";
@@ -48,20 +49,38 @@ const unsigned char magic[] = { 037, 0135, 0211 };
 
 int verbose = 0;	/* verbose output */
 int unlink_enabled = 0; /* delete files with errors */
+int fix_fixables = 0; /* repair files if possible */
 int errors_found = 0;
 int errors_fixed = 0;
+int warnings = 0;
 
 /* remove file if unlink_enabled is true */
 void do_unlink(const char *fpath)
 {
 	if (unlink_enabled)
 	{
-		fprintf(stderr, "removing %s\n", fpath);
+		fprintf(stderr, "%s: removing file\n", fpath);
 		unlink(fpath);
 		errors_fixed++;
 	}
 	else if (verbose)
-		fprintf(stderr, "not removing %s (disabled)\n", fpath);
+		fprintf(stderr, "%s: not removing file (disabled)\n", fpath);
+}
+
+static int force_truncate(const char* fpath, off_t size)
+{
+	struct stat stbuf;
+	int r;
+	int fd = file_open(fpath, O_RDWR);
+	if (fstat(fd, &stbuf) < 0) {
+		perror("fstat");
+		close(fd);
+		return -1;
+	}
+	r = ftruncate(fd, size);
+	if (r < 0) perror("ftruncate");
+	close(fd);
+	return r;
 }
 
 /* try to fix error on file fpath */
@@ -86,12 +105,36 @@ int fix(int fd, const char *fpath, int error)
 			do_unlink(fpath);
 			break;
 			
+		case TRUNCATE_HERE:
+			fprintf(stderr, "%s: garbage data at end of file\n", fpath);
+			if (fix_fixables)
+			{
+				fprintf(stderr, "%s: truncating to correct size\n", fpath);
+				if (!force_truncate(fpath, lseek(fd, 0, SEEK_CUR)))
+					errors_fixed++;
+			}
+			break;
+			
 		default:
 			fprintf(stderr, "unknown error %d, ignored\n", error);
 			break;
 	}
 	close(fd);
 	return 0;
+}
+
+void warn(const char* fpath, int warning)
+{
+	warnings++;
+	switch(warning)
+	{
+		case FAIL_OPEN:
+			fprintf(stderr,"%s: unable to open file\n", fpath);
+			break;
+		default:
+			fprintf(stderr, "unknown warning %d\n", warning);
+			break;
+	}
 }
 
 /* check file for errors in compressed data
@@ -111,9 +154,11 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	if (verbose)
 		fprintf(stderr, "checking file %s: ", fpath);
 
-	fd = open(fpath, O_RDONLY);
-	if (fd < 0)
-		return fix(fd, fpath, FAIL_OPEN);
+	fd = file_open(fpath, O_RDONLY);
+	if (fd < 0) {
+		warn(fpath, FAIL_OPEN);
+		return 0;
+	}
 
 	if (strncmp(&fpath[ftwbuf->base], TEMP, sizeof(TEMP) - 1) == 0  ||
 	    strncmp(&fpath[ftwbuf->base], FUSE, sizeof(FUSE) - 1) == 0)
@@ -139,7 +184,6 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 		while (size)
 		{
 			res = compr->read(handle, buf, size > BUFSIZE ? BUFSIZE : size);
-
 			if (res < 0)
 				return fix(fd, fpath, FAIL_READ_DECOMP);
 			if (res == 0 && size)
@@ -147,6 +191,8 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 
 			size -= res;
 		}
+		if (sb->st_size > lseek(fd, 0, SEEK_CUR))
+			return fix(fd, fpath, TRUNCATE_HERE);
 
 		if (compr->close(handle) < 0)
 			return fix(fd, fpath, FAIL_CLOSE_DECOMP);
@@ -164,7 +210,8 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 void usage(char *n)
 {
 	fprintf(stderr, "Usage: %s [-dv] directory\n\n", n);
-	fprintf(stderr, " -d\tRemove broken files\n");
+	fprintf(stderr, " -d\tRemove unfixable or superfluous broken files\n");
+	fprintf(stderr, " -p\tFix fixable files\n");
 	fprintf(stderr, " -v\tBe verbose\n");
 	exit(1);
 }
@@ -175,11 +222,14 @@ int main(int argc, char **argv)
 
 	do
 	{
-		next_option = getopt(argc, argv, "dv");
+		next_option = getopt(argc, argv, "dpv");
 		switch (next_option)
 		{
 			case 'd':
 				unlink_enabled = 1;
+				break;
+			case 'p':
+				fix_fixables = 1;
 				break;
 			case 'v':
 				verbose = 1;
@@ -200,6 +250,7 @@ int main(int argc, char **argv)
 		perror("nftw");
 		exit(1);
 	}
+	if (warnings) fprintf(stderr, "%d warnings\n", warnings);
 	if (!errors_found) {
 		fprintf(stderr, "no errors found\n");
 		return 0;

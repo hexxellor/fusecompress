@@ -508,6 +508,9 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 
 	// Do actual decompressing
 	//
+	if (file->size != -1 && descriptor->offset + size > file->size)
+		size = file->size - descriptor->offset;
+	
 	len = file->compressor->read(descriptor->handle, buffer, size);
 	if (len < 0)
 	{
@@ -515,7 +518,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		errno = EIO;
 		return -1;
 	}
-	if (len < size && (file->size == (off_t)-1 || descriptor->offset + len < file->size)) {
+	if (len < size) {
 		/* Again, this should have worked. */
 		ERR_("short read in compressed file %s (probably corrupt)",file->filename);
 		errno = EIO;
