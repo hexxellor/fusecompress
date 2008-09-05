@@ -63,3 +63,7 @@ database_t comp_database = {
 	.cond = PTHREAD_COND_INITIALIZER,		// When new item is added to the list
 	.entries = 0,
 };
+
+#ifdef DEBUG
+int _debug_on = 1;
+#endif
