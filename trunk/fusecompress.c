@@ -1135,7 +1135,7 @@ int main(int argc, char *argv[])
 				compresslevel[2] = 0; /* minilzo and null ignore compress level */
 				break;
 			default:
-				ERR_("unknonwn compressor type %d",compressor_default->type);
+				ERR_("unknown compressor type %d",compressor_default->type);
 				exit(EXIT_FAILURE);
 				break;
 		}
