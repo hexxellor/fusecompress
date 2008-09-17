@@ -898,6 +898,51 @@ static void print_version(void)
 	printf("%s version %d.%d.%d\n", "fusecompress", 0, 9, 1);
 }
 
+#include <signal.h>
+static void sigterm_handler(int sig)
+{
+	assert(sig == SIGTERM);
+	/* use SIGTERM as a cue that we will be unmounted soon and
+	   purge remaining files */
+	LOCK(&database.lock);
+	direct_open_purge_force();
+	UNLOCK(&database.lock);
+}
+
+/* Sets a SIGTERM handler to keep fusecompress from exiting on a SIGTERM.
+   A typical problem with FUSE filesystems mounted on / is that init scripts
+   send a SIGTERM (and, if the process survives, a SIGKILL) to all processes
+   before unmounting the filesystems. Normally, FUSE filesystems terminate
+   when receiving SIGTERM, which is very undesirable in this case. I have
+   therefore added the "noterm" option which instead takes SIGTERM as a cue
+   to flush as much as possible from the database to prevent long delays
+   while files in the database are compressed by the background thread.
+   (SIGKILL is even more disastrous as it will most likely result in data
+   corruption, but it cannot be handled by us. Instead, a fix to killall5
+   is necessary that exempts FUSE filesystems from being SIGKILLed.
+   See http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=476698 .) */
+static int set_sigterm_handler(void)
+{
+	struct sigaction sa;
+	struct sigaction old_sa;
+
+	memset(&sa, 0, sizeof(struct sigaction));
+	sa.sa_handler = sigterm_handler;
+	sigemptyset(&(sa.sa_mask));
+	sa.sa_flags = 0;
+
+	if (sigaction(SIGTERM, NULL, &old_sa) == -1) {
+		perror("fusecompress: cannot get old signal handler");
+		return -1;
+	}
+
+	if (sigaction(SIGTERM, &sa, NULL) == -1) {
+		perror("fusecompress: cannot set signal handler");
+		return -1;
+	}
+	return 0;
+}
+
 char compresslevel[3] = "wbx";
 
 #define MAX_OPTS 50
@@ -920,6 +965,7 @@ int main(int argc, char *argv[])
 #endif
 	;
 	int detach = 1;
+	int noterm = 0; /* do not exit on SIGTERM */
 
 	fusev[fusec++] = argv[0];
 #ifdef DEBUG
@@ -996,6 +1042,10 @@ int main(int argc, char *argv[])
 					else if (!strcmp(o, "lzo") || !strcmp(o, "lzma") || !strcmp(o, "bz2") || !strcmp(o, "gz") || !strcmp(o, "null"))
 					{
 						compressor_default = find_compressor_name(o);
+					}
+					else if (!strcmp(o, "noterm"))
+					{
+						noterm = 1;
 					}
 					else
 					{
@@ -1154,6 +1204,12 @@ trysomethingelse:
 #ifdef DEBUG
 	stderr = debugout;
 #endif
+	
+	if (noterm)
+	{
+		if (set_sigterm_handler())
+			WARN_("unable to set SIGTERM handler, will terminate on SIGTERM");
+	}
 	
 	ret = fuse_main(fusec, fusev, &fusecompress_oper);
 	
