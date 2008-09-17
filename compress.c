@@ -312,7 +312,7 @@ void do_compress(file_t *file)
 
 	fd = file_open(file->filename, O_RDWR);
 	if (fd == FAIL) {
-		ERR_("\tfailed to open file %s: %d",file->filename,errno);
+		FILEERR_(file, "\tfailed to open file %s: %d",file->filename,errno);
 
 		// Something wrong happend, mark file as deleted to break the
 		// loop in _direct_open_purge when this function is called by it.
@@ -323,7 +323,7 @@ void do_compress(file_t *file)
 
 	res = fstat(fd, &statbuf);
 	if (res == FAIL) {
-		ERR_("\tfailed to fstat file");
+		FILEERR_(file, "\tfailed to fstat file");
 
 		// Something wrong happend, mark file as delete to break the
 		// loop in _direct_open_purge when this function is called by it.
@@ -376,7 +376,7 @@ void do_compress(file_t *file)
 	//
 	res = file_write_header(fd_temp, compressor, statbuf.st_size);
 	if (res == FAIL) {
-		ERR_("\tfailed to write header");
+		FILEERR_(file, "\tfailed to write header");
 		goto out;
 	}
 
@@ -451,7 +451,7 @@ void do_compress(file_t *file)
 
 	res = rename(temp, file->filename);
 	if (res == FAIL) {
-		ERR_("\tfailed to rename %s to %s",temp,file->filename);
+		FILEERR_(file, "\tfailed to rename %s to %s",temp,file->filename);
 		goto out;
 	}
 	free(temp);

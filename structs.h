@@ -91,6 +91,8 @@ typedef struct {
 	
 	void**           cache;
 	int              cache_size;
+	
+	int		 errors_reported;	/**< Number of errors reported for this file */
 
 	pthread_mutex_t	lock;
 	pthread_cond_t cond;

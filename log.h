@@ -48,6 +48,11 @@ extern int _debug_on;
 #define ERR_(fmt,...)				\
 	barf(LOG_ERR, "ERR %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
 
+#define MAX_ERRORS_PER_FILE 100
+#define FILEERR_(file, fmt, ...)		\
+	if (file->errors_reported == MAX_ERRORS_PER_FILE) { file->errors_reported++; ERR_("too many errors for file %s, squelching", file->filename); }	\
+	else if (file->errors_reported < MAX_ERRORS_PER_FILE) { file->errors_reported++; ERR_(fmt, ## __VA_ARGS__); }
+
 #define CRIT_(fmt,...)				\
 	barf(LOG_CRIT, "CRIT: %s %d: " fmt, __PRETTY_FUNCTION__, __LINE__, ## __VA_ARGS__);
 	

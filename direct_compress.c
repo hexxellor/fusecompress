@@ -442,7 +442,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		ret = file->compressor->close(descriptor->handle);
 		if(ret < 0)
 		{
-			ERR_("unable to close compressor on file %s", file->filename);
+			FILEERR_(file, "unable to close compressor on file %s", file->filename);
 			return FAIL;
 		}
 		descriptor->offset = 0;
@@ -450,7 +450,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		ret = lseek(descriptor->fd, sizeof(header_t), SEEK_SET);
 		if(ret != sizeof(header_t))
 		{
-			ERR_("unable to seek back to beginning of compressed data on file %s", file->filename);
+			FILEERR_(file, "unable to seek back to beginning of compressed data on file %s", file->filename);
 			return FAIL;
 		}
 	}
@@ -512,7 +512,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 			len = file->compressor->read(descriptor->handle, skipbuf, readsize);
 			DEBUG_("tried %zd bytes, got %d (file size %zd)",readsize,len,file->size);
 			if(len < 0) {
-				ERR_("failed to read from compressor");
+				FILEERR_(file, "failed to read from compressor");
 				errno = EIO;
 				return -1;
 			}
@@ -522,7 +522,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 				   assuming that if file->size == -1,
 				   something bad (probably another failed
 				   read) happened before.) */
-				ERR_("short read while skipping in compressed file %s (probably corrupt)",file->filename);
+				FILEERR_(file, "short read while skipping in compressed file %s (probably corrupt)",file->filename);
 				errno = EIO;
 				return -1;
 			}
@@ -546,13 +546,13 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	len = file->compressor->read(descriptor->handle, buffer, size);
 	if (len < 0)
 	{
-		ERR_("failed to read from compressor (file %s)", file->filename);
+		FILEERR_(file, "failed to read from compressor (file %s)", file->filename);
 		errno = EIO;
 		return -1;
 	}
 	if (len < size) {
 		/* Again, this should have worked. */
-		ERR_("short read in compressed file %s (probably corrupt)",file->filename);
+		FILEERR_(file, "short read in compressed file %s (probably corrupt)",file->filename);
 		errno = EIO;
 		return -1;
 	}
