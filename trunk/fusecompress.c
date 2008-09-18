@@ -974,6 +974,14 @@ int main(int argc, char *argv[])
 	fusev[fusec++] = "-o";
 	fusev[fusec++] = "nonempty,kernel_cache,default_permissions,use_ino";
 
+	if (geteuid() == 0)
+	{
+		/* default to the behavior people expect when mounting a filesystem as root */
+		fusev[fusec++] = "-o";
+		fusev[fusec++] = "allow_other,suid,dev";
+		noterm = 1;
+	}
+	
 	root_fs = 0;
 	read_only = 0;
 	cache_decompressed_data = 0;
@@ -1046,6 +1054,10 @@ int main(int argc, char *argv[])
 					else if (!strcmp(o, "noterm"))
 					{
 						noterm = 1;
+					}
+					else if (!strcmp(o, "term"))
+					{
+						noterm = 0;
 					}
 					else
 					{
