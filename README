@@ -1,11 +1,15 @@
 FuseCompress
-	http://www.miio.net/fusecompress
+============
+
+http://fusecompress.googlecode.com/
 
 
 We are not responsible for any badness that may happen to you while using
 this software.
 
-News:
+NEWS
+~~~~
+	after 0.9.1.1: see http://code.google.com/p/fusecompress/source/list
 	0.9.1.1 Buffer overflow from command line parsing fixed. Fix bug that
 	        caused permition problems on read-only files.
 	0.9.1 File format has been changed. It allows better cooperation with
@@ -21,69 +25,80 @@ News:
 	0.8.1 README updated.
 	0.8   Major update. New format for storing compressed files is used.
 
-License:
+LICENSE
+~~~~~~~
+This program is distributed under the terms of the GNU Public License
+version 2.
 
-This program is distributed under GNU/GPL version 2 
+TODO
+~~~~
+See http://code.google.com/p/fusecompress/issues/list
 
-
-Todo:
-	- Optimization
-
-Installation & compilation:
+INSTALLATION
+~~~~~~~~~~~~
+To compile a release build, run
 
 make release
 
-Usage:
+For more information, see
+http://code.google.com/p/fusecompress/wiki/BuildHOWTO
 
-	fusecompress [OPTIONS] /storage/directory/
+USAGE
+~~~~~
+        fusecompress [OPTIONS] /storage/directory [/mount/point]
+          -h                   print this help
+          -v                   print version
+          -c lzo/bz2/gz/lzma/null   choose default compression method
+          -l LEVEL             set compression level (1 to 9)
+          -o ...               pass arguments to fuse library
 
-		-h			print this help
-		-c lzo/bz2/gz/lzma/null	choose default compression method
-		-l LEVEL                set compression level (1 to 9)
-		-o ...			pass arguments to fuse library
-
-	You can mount filesystem over existing directory with files.
-	Files will be compressed when you work with filesystem. Even a
-	simple 'find /storage' will compress them. Note that some of the last files
-	found are not compressed - this is called cache and increases
-	performance on frequently accessed files. These files are compressed
-	when the filesystem is unmounted.
+You can mount filesystem over existing directory with files by omitting the
+last parameter. Files will be compressed when you work with filesystem. Even
+a simple 'find /storage' will compress them. Note that some of the last
+files found are not compressed - this increases performance on frequently
+accessed files. These files are compressed when the filesystem is unmounted
+or (if mounted with "-o noterm" (default for root)) when the fusecompress
+process receives a SIGTERM signal.
 
 Useful parameters for FUSE library:
 
-	The FUSE library must be configured to support these features - the configuration
-	file /etc/fuse.conf must contains at least the option "user_allow_other".
+The FUSE library must be configured to support these features - the configuration
+file /etc/fuse.conf must contains at least the option "user_allow_other".
 
-	allow_other
-	
-		This option overrides the security measure restricting file access
-		to the user mounting the filesystem.  So all users (including root)
-		can access the files.  This option is by default only allowed for
-		root, but this restriction can be removed with the configuration
-		option described in the previous section.
-	
-	allow_root
-	
-		This option is similar to 'allow_other', but file access is limited
-		to the user mounting the filesystem and root.  This option and
-		'allow_other' are mutually exclusive.
+allow_other
 
-Tips and tricks:
+        This option overrides the security measure restricting file
+        access to the user mounting the filesystem.  So all users
+        (including root) can access the files.  This option is by
+        default only allowed (and automatically enabled) for root,
+        but this restriction can be removed with the configuration
+        option described in the previous section.
 
-	How can I find out about the compression ratio?
+allow_root
 
-		Run this command in the FuseCompressed directory when mounted
-		with FuseCompress:
-			du -sh
-			du -sh --apparent-size
+        This option is similar to 'allow_other', but file access is limited
+        to the user mounting the filesystem and root.  This option and
+        'allow_other' are mutually exclusive.
 
-		The first command prints the total uncompressed size of all
-                files in the current directory and its subdirectories while
-                the second one prints the total compressed size.
+More information can be found at
+http://code.google.com/p/fusecompress/wiki/Usage
 
-		When the FuseCompress filesystem is not mounted, run `ls -l
-		my_file.dat` and compare the file size with the value
-		obtained with `file my_file.dat`.
+TIPS AND TRICKS
+~~~~~~~~~~~~~~~
+How can I find out about the compression ratio?
+
+        Run this command in the FuseCompressed directory when mounted
+        with FuseCompress:
+                du -sh
+                du -sh --apparent-size
+
+        The first command prints the total uncompressed size of all
+        files in the current directory and its subdirectories while
+        the second one prints the total compressed size.
+
+        When the FuseCompress filesystem is not mounted, run `ls -l
+        my_file.dat` and compare the file size with the value
+        obtained with `file my_file.dat`.
 
 File and magic utilities:
 
@@ -99,8 +114,8 @@ to recognize the FuseCompress file format:
 >3      byte    >0x04   (unknown format)
 >4      long    x       uncompressed size: %d
 
-Authors:
-
+AUTHORS
+~~~~~~~
 Milan Svoboda <milan.svoboda@centrum.cz> (original author)
 Anders Aagaard <aagaande@gmail.com> (direct compress feature)
 Ulrich Hecht <uli@suse.de> (LZMA module, tools, test suite, bugfixes, maintainer)
