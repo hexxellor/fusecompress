@@ -142,6 +142,7 @@ int do_decompress(file_t *file)
 				free(file->cache[i]);
 			}
 		}
+		free(file->cache);
 		file->cache = NULL;
 		file->cache_size = 0;
 		DEBUG_("decomp_cache_size %d", decomp_cache_size);
@@ -160,8 +161,17 @@ int do_decompress(file_t *file)
 	// Try to read header.
 	//
 	res = file_read_header_fd(fd_source, &header_compressor, &header_size);
-	assert( res == 0 );
-	assert( header_compressor );
+	if (res < 0) {
+		CRIT_("I/O error reading header on '%s': %s", file->filename, strerror(errno));
+		return FALSE;
+	}
+	if (!header_compressor) {
+		/* This is not a compressed file (most likely it's empty)
+		   we only have to reset the compressor */
+		file->compressor = NULL;
+		file->size = -1; /* is this safe? */
+		return TRUE;
+	}
 
 	// Set compressor (it'll be unset if we're called from
 	// truncate for example)

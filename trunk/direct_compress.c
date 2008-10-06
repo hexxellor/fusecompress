@@ -51,11 +51,6 @@ void direct_open_delete(file_t *file)
 {
 	NEED_LOCK(&file->lock);
 
-	// It's out of the database, so we can unlock and destroy it
-	//
-	UNLOCK(&file->lock);
-	pthread_mutex_destroy(&file->lock);
-
 	if (file->cache)
 	{
 		int i;
@@ -68,7 +63,16 @@ void direct_open_delete(file_t *file)
 			}
 		}
 		DEBUG_("decomp_cache_size %d", decomp_cache_size);
+		free(file->cache);
+		file->cache = NULL;
+		file->cache_size = 0;
 	}
+
+	// It's out of the database, so we can unlock and destroy it
+	//
+	UNLOCK(&file->lock);
+	pthread_mutex_destroy(&file->lock);
+
 	free(file);
 }
 
@@ -373,7 +377,7 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 	}
 
 	size_t s = 0;
-	if (cache_this_read && (file->type & READ) && file->cache && file->cache[offset / DC_PAGE_SIZE])
+	if (cache_this_read && (file->type & READ) && file->cache && file->cache_size > offset / DC_PAGE_SIZE && file->cache[offset / DC_PAGE_SIZE])
 	{
 		//DEBUG_ON
 		DEBUG_("serving data from cache at offset %zd", offset);
@@ -603,8 +607,8 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	//
 	if ((descriptor->offset != file->size) || (descriptor->offset != offset) || (!(file->type & WRITE)) || (file->accesses > 1))
 	{
-		DEBUG_("\tfallback, offset: %zi, descriptor->offset: %zi, !(file->type & WRITE): %d, file->accesses: %d",
-			offset, descriptor->offset, (!(file->type & WRITE)), file->accesses);
+		DEBUG_("\tfallback for %s, offset: %zi, descriptor->offset: %zi, !(file->type & WRITE): %d, file->accesses: %d",
+			file->filename, offset, descriptor->offset, (!(file->type & WRITE)), file->accesses);
 		STAT_(STAT_FALLBACK);
 
 		DEBUG_("calling do_decompress, descriptor->fd %d",descriptor->fd);
