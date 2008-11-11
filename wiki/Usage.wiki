@@ -38,6 +38,8 @@ This mounts a compressed filesystem at `/foo` using [http://en.wikipedia.org/wik
 
 It is also possible to give the compression level as a filesystem option (see below), which is helpful when mounting FuseCompress filesystems from /etc/fstab.
 
+*_WARNING_:* The LZMA Utils library used in FuseCompress is not stable yet, and different revisions may create mutually incompatible data streams, potentially leaving you unable to read your previously written data in case of an update.
+
 ==Compression level==
 
 Some compression methods (LZMA, Deflate, and bzip2) support different compression levels (1 to 9), with the lower levels being faster with lower compression ratio, and the higher levels slower (sometimes dramatically so) with higher compression ratio. The defaults are 4 for LZMA, and 6 for Deflate and bzip2. If you want to use a different level, you can use the `-l` option:
