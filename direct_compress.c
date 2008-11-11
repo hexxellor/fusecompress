@@ -47,10 +47,9 @@
 */
 #define MAX_DATABASE_LEN 30
 
-void direct_open_delete(file_t *file)
+void flush_file_cache(file_t* file)
 {
 	NEED_LOCK(&file->lock);
-
 	if (file->cache)
 	{
 		int i;
@@ -67,7 +66,13 @@ void direct_open_delete(file_t *file)
 		file->cache = NULL;
 		file->cache_size = 0;
 	}
+}
+void direct_open_delete(file_t *file)
+{
+	NEED_LOCK(&file->lock);
 
+	flush_file_cache(file);
+	
 	// It's out of the database, so we can unlock and destroy it
 	//
 	UNLOCK(&file->lock);
@@ -584,6 +589,8 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	
 	NEED_LOCK(&file->lock);
 
+	flush_file_cache(file);
+	
 	DEBUG_("('%s'), offset: %zi, descriptor->offset: %zi",
 				file->filename, offset, descriptor->offset);
 	STAT_(STAT_DIRECT_WRITE);

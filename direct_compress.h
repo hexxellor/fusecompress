@@ -34,4 +34,6 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 void direct_delete(file_t *file);
 file_t *direct_rename(file_t *file_from, file_t *file_to);
 
+void flush_file_cache(file_t* file);
+
 #endif

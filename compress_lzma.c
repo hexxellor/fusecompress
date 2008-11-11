@@ -16,6 +16,12 @@
 #include <stdint.h>
 #include <lzma.h>
 
+#if LZMA_VERSION <= UINT32_C(49990030)
+#define LZMA_EASY_ENCODER lzma_easy_encoder_single
+#else
+#define LZMA_EASY_ENCODER lzma_easy_encoder
+#endif
+
 #include "structs.h"
 #include "globals.h"
 #include "file.h"
@@ -50,9 +56,9 @@ static off_t lzmaCompress(void *cancel_cookie, int fd_source, int fd_dest)
         }
                                                 	/* init LZMA encoder */
 	lzma_stream lstr = lzma_stream_init;
-	ret = lzma_easy_encoder_single(&lstr, LZMA_EASY_COPY + compresslevel[2] - '0');
+	ret = LZMA_EASY_ENCODER(&lstr, LZMA_EASY_COPY + compresslevel[2] - '0');
 	if(ret != LZMA_OK) {
-		ERR_("lzma_easy_encoder_single failed: %d",ret);
+		ERR_("LZMA_EASY_ENCODER failed: %d",ret);
 		close(dup_fd);
 		return (off_t)FAIL;
 	}
@@ -145,7 +151,11 @@ static off_t lzmaDecompress(int fd_source, int fd_dest)
 	
 	/* init LZMA decoder */
 	lzma_stream lstr = lzma_stream_init;
+#if LZMA_VERSION <= UINT32_C(49990030)
 	ret = lzma_auto_decoder(&lstr, NULL, NULL);
+#else
+	ret = lzma_auto_decoder(&lstr, -1, 0);
+#endif
 	if(ret != LZMA_OK) {
 		ERR_("lzma_auto_decoder failed");
 		close(dup_fd);
@@ -213,11 +223,15 @@ void* lzmaOpen(int fd, const char* mode)
 	lf->str = lzma_stream_init;
 	lf->mode = mode[0];
 	if(mode[0] == 'r') {
+#if LZMA_VERSION <= UINT32_C(49990030)
 		ret = lzma_auto_decoder(&lf->str, NULL, NULL);
+#else
+		ret = lzma_auto_decoder(&lf->str, -1, 0);
+#endif
 		lf->str.avail_in = 0;
 	}
 	else {
-		ret = lzma_easy_encoder_single(&lf->str, LZMA_EASY_COPY + mode[2] - '0');
+		ret = LZMA_EASY_ENCODER(&lf->str, LZMA_EASY_COPY + mode[2] - '0');
 	}
 	if(ret != LZMA_OK) return NULL;
 	return (void*)lf;
