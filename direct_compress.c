@@ -67,6 +67,7 @@ void flush_file_cache(file_t* file)
 		file->cache_size = 0;
 	}
 }
+
 void direct_open_delete(file_t *file)
 {
 	NEED_LOCK(&file->lock);
@@ -589,7 +590,9 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 	
 	NEED_LOCK(&file->lock);
 
-	flush_file_cache(file);
+	flush_file_cache(file); /* This may be superfluous. It did fix issue #32, but that may have been only
+	                           due to the fact that it destroyed the cache falsely inherited by file_to
+	                           in direct_rename(), which should have already been destroyed there. */
 	
 	DEBUG_("('%s'), offset: %zi, descriptor->offset: %zi",
 				file->filename, offset, descriptor->offset);
@@ -737,6 +740,10 @@ file_t* direct_rename(file_t *file_from, file_t *file_to)
 	DEBUG_("\tfile_from->compressor: %p, file_from->size: %zi, file_from->accesses: %d",
 		file_from->compressor, file_from->size, file_from->accesses);
 
+	/* file_to may be an existing file that is overwritten, so we need to
+	   destroy its cache */
+	flush_file_cache(file_to);
+	
 	file_to->size = file_from->size;
 	file_to->compressor = file_from->compressor;
 
