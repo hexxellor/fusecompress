@@ -888,7 +888,20 @@ static void print_help(void)
 
 	printf("\t-h                   print this help\n");
 	printf("\t-v                   print version\n");
-	printf("\t-c lzo/bz2/gz/lzma/null   choose default compression method\n");
+	printf("\t-c "
+#ifdef HAVE_LZO2
+		"lzo/"
+#endif
+#ifdef HAVE_BZIP2
+	        "bz2/"
+#endif
+#ifdef HAVE_ZLIB
+		"gz/"
+#endif
+#ifdef HAVE_LZMA
+		"lzma/"
+#endif
+		"null   choose default compression method\n");
 	printf("\t-l LEVEL             set compression level (1 to 9)\n");
 	printf("\t-o ...               pass arguments to fuse library\n\n");
 }
@@ -1130,7 +1143,17 @@ int main(int argc, char *argv[])
 	//
 	if (!compressor_default)
 	{
+#ifdef HAVE_LZO2
 		compressor_default = &module_lzo;
+#elif HAVE_ZLIB
+		compressor_default = &module_gzip;
+#elif HAVE_LZMA
+		compressor_default = &module_lzma;
+#elif HAVE_BZIP2
+		compressor_default = &module_bz2;
+#else
+		compressor_default = &module_null;
+#endif
 	}
 	
 	if(compresslevel[2] == 'x') {
