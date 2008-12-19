@@ -2,6 +2,10 @@ This page tells you how to build FuseCompress from source.
 
 == What you need ==
   * the [http://fuse.sourceforge.net/ FUSE] library, libfuse. I am using version 2.7.2 as shipped with openSUSE 11.0. Newer version should do, too.
+  * [http://www.cmake.org/ CMake]
+
+You will also want to have at least one of the following data compression libraries:
+
   * [http://www.zlib.net/ zlib]. Any version should do.
   * the [http://www.bzip.org/ bzip2] library, libbz2. Just take what comes with your distribution.
   * [http://tukaani.org/lzma/ LZMA Utils] with liblzma. You need an "experimental" release (version 4.42 and up) as there is no support for compression in the older releases of the library.
@@ -9,7 +13,7 @@ This page tells you how to build FuseCompress from source.
 
 In openSUSE, you can get all these packages by running
 {{{
-zypper in fuse-devel zlib-devel libbz2-devel lzma-alpha-devel lzo-devel
+zypper in cmake fuse-devel zlib-devel libbz2-devel lzma-alpha-devel lzo-devel
 }}}
 as root.
 
@@ -17,10 +21,14 @@ as root.
 
 == Compiling it ==
 
-Depending on whether you want to create a debug or a release build, enter `make debug` or `make release`. You should end up with a binary called `fusecompress` as well as the tools `fsck.fusecompress` and `fusecompress_offline`.
+Depending on whether you want to create a debug or a release build, enter `cmake -DCMAKE_BUILD_TYPE=debug .` or `cmake .`. You should end up with a binary called `fusecompress` as well as the tools `fsck.fusecompress` and `fusecompress_offline`.
 
-To link LZO statically, you can run make with `LDFLAGS_LZO=/usr/lib64/liblzo2.a`. This may be necessary if your shared LZO library is in `/usr` and you want to fusecompress that directory.
+The build system will autodetect the available compression libraries and enable the corresponding compression modules. You can explicitly disable compression modules you do not want included:
+
+cmake -DWITH_GZ=off -DWITH_LZMA=off -DWITH_LZO=off -DWITH_BZ2=off
+
+This example will result in a fusecompress binary that can only handle null-compressed files.
 
 == Running the test suite ==
 
-If you have made changes, be sure to run the test suite to check if they broke anything. Enter `make test`. Be aware that some tests create considerable load, for instance by spawning as many threads as possible to stress the filesystem. Some tests only run as root and are automatically skipped if you are running the test suite as another user. Most tests are written in Python, some in BASH and/or C.
+If you have made changes, be sure to run the test suite to check if they broke anything. Enter `cd test ; bash run_tests`. Be aware that some tests create considerable load, for instance by spawning as many threads as possible to stress the filesystem. Some tests only run as root and are automatically skipped if you are running the test suite as another user. Most tests are written in Python, some in BASH and/or C. The test suite will only pass successfully if FuseCompress has been compiled with all compression modules enabled.
