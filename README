@@ -38,7 +38,8 @@ INSTALLATION
 ~~~~~~~~~~~~
 To compile a release build, run
 
-make release
+cmake .
+make
 
 For more information, see
 http://code.google.com/p/fusecompress/wiki/BuildHOWTO

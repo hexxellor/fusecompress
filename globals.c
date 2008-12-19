@@ -30,10 +30,18 @@ compressor_t *compressor_default = NULL;
 //
 compressor_t *compressors[5] = {
 	&module_null,
+#ifdef HAVE_BZIP2
 	&module_bz2,
+#endif
+#ifdef HAVE_ZLIB
 	&module_gzip,
+#endif
+#ifdef HAVE_LZO2
 	&module_lzo,
+#endif
+#ifdef HAVE_LZMA
 	&module_lzma,
+#endif
 };
 
 char *incompressible[] = {
