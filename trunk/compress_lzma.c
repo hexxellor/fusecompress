@@ -17,9 +17,11 @@
 #include <lzma.h>
 
 #if LZMA_VERSION <= UINT32_C(49990030)
-#define LZMA_EASY_ENCODER lzma_easy_encoder_single
+#define LZMA_EASY_ENCODER(a,b) lzma_easy_encoder_single(a,b)
+#elif LZMA_VERSION <= UINT32_C(49990050)
+#define LZMA_EASY_ENCODER(a,b) lzma_easy_encoder(a,b)
 #else
-#define LZMA_EASY_ENCODER lzma_easy_encoder
+#define LZMA_EASY_ENCODER(a,b) lzma_easy_encoder(a,b,LZMA_CHECK_CRC32)
 #endif
 
 #include "structs.h"
@@ -56,7 +58,7 @@ static off_t lzmaCompress(void *cancel_cookie, int fd_source, int fd_dest)
         }
                                                 	/* init LZMA encoder */
 	lzma_stream lstr = lzma_stream_init;
-	ret = LZMA_EASY_ENCODER(&lstr, LZMA_EASY_COPY + compresslevel[2] - '0');
+	ret = LZMA_EASY_ENCODER(&lstr, compresslevel[2] - '0');
 	if(ret != LZMA_OK) {
 		ERR_("LZMA_EASY_ENCODER failed: %d",ret);
 		close(dup_fd);
@@ -231,7 +233,7 @@ void* lzmaOpen(int fd, const char* mode)
 		lf->str.avail_in = 0;
 	}
 	else {
-		ret = LZMA_EASY_ENCODER(&lf->str, LZMA_EASY_COPY + mode[2] - '0');
+		ret = LZMA_EASY_ENCODER(&lf->str, mode[2] - '0');
 	}
 	if(ret != LZMA_OK) return NULL;
 	return (void*)lf;
