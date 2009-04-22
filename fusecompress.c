@@ -1048,7 +1048,7 @@ int main(int argc, char *argv[])
 					{
 						root_fs = 1;
 					}
-					else if (!strcmp(o, "cache_skipped"))
+					else if (!strcmp(o, "cache_skipped") || !strcmp(o, "cache"))
 					{
 						cache_decompressed_data = 1;
 					}
