@@ -1000,6 +1000,7 @@ int main(int argc, char *argv[])
 	cache_decompressed_data = 0;
 	decomp_cache_size = 0;
 	max_decomp_cache_size = 100 * 1024 * 1024;
+	dont_compress_beyond = -1;
 	
 	do {
 		if (fusec >= argc + MAX_OPTS - 2)
@@ -1075,6 +1076,10 @@ int main(int argc, char *argv[])
 					else if (!strcmp(o, "term"))
 					{
 						noterm = 0;
+					}
+					else if (!strncmp(o, "maxcompress=", 12) && strlen(o) > 12) {
+						dont_compress_beyond = strtol(o + 12, NULL, 10) * 1024 * 1024;
+						DEBUG_("dont_compress_beyond set to %zd", dont_compress_beyond);
 					}
 					else
 					{

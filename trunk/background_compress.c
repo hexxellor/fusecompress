@@ -130,7 +130,8 @@ void *thread_compress(void *arg)
 		// try to compress files that hasn't been deleted
 		// and hasn't been compressed
 		//
-		if ((file->accesses == 1) && (!file->deleted) && (!file->compressor))
+		if ((file->accesses == 1) && (!file->deleted) && (!file->compressor) &&
+		    (dont_compress_beyond == -1 || file->size < dont_compress_beyond) )
 		{
 			DEBUG_("compressing '%s'", file->filename);
 			do_compress(file);
