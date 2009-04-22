@@ -1052,6 +1052,10 @@ int main(int argc, char *argv[])
 					{
 						cache_decompressed_data = 1;
 					}
+					else if (!strncmp(o, "cache_size=", 11) && strlen(o) > 11) {
+						max_decomp_cache_size = strtol(o + 11, NULL, 10) * 1024 * 1024;
+						DEBUG_("max_decomp_cache_size set to %d", max_decomp_cache_size);
+					}
 					else if (!strcmp(o, "detach"))
 					{
 						detach = 1;
