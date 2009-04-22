@@ -58,6 +58,8 @@ char *mmapped_dirs[] = {
     "bin/", "sbin/", "usr/bin/", "usr/sbin/", NULL
 };
 
+size_t dont_compress_beyond; /* maximum size of files to compress in the bg compress thread */
+
 database_t database = {
 	.head = LIST_HEAD_INIT(database.head),
 	.lock = PTHREAD_MUTEX_INITIALIZER,
