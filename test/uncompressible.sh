@@ -1,9 +1,9 @@
 #!/bin/bash -e
 c=".exe .txt .rar.txt .zip.me"
-u=".lzma .gz .tar.bz2 .mp3"
+u=".lzma .gz .tar.bz2 .mp3 .blubb .bla"
 size=`stat -c %s /bin/bash`
 mkdir test
-../fusecompress -d -c lzo test
+../fusecompress -d -c lzo -o nocompext=blubb,nocompext=bla test
 for i in $c; do
   cp /bin/bash test/bash${i}
   s="$((`stat -c "%B * %b" test/bash${i}`))"

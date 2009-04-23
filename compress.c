@@ -60,10 +60,17 @@ compressor_t *choose_compressor(const file_t *file)
 	char **ext;
 
 	/* don't compress already compressed file formats */
-	char* r;
-	for (ext = incompressible; *ext != NULL; ext++)
-		if ((r = rindex(file->filename, '.')) && !strcmp(r, *ext))
-			return NULL;
+	char* r = rindex(file->filename, '.');
+	if (r) {
+		r++;
+		for (ext = incompressible; *ext != NULL; ext++)
+			if (!strcmp(r, *ext))
+				return NULL;
+		if (user_incompressible)
+			for (ext = user_incompressible; *ext != NULL; ext++)
+				if (!strcmp(r, *ext))
+					return NULL;
+	}
 
 	/* ignore our temporary files */
 	if (strstr(file->filename, TEMP))

@@ -968,6 +968,7 @@ int main(int argc, char *argv[])
 	char             *fs_opts = NULL;
 	char             *o;
 	int               ret;
+	int		  nccount = 0;
 	
 #ifdef DEBUG
 	FILE* debugout = stderr;
@@ -1080,6 +1081,14 @@ int main(int argc, char *argv[])
 					else if (!strncmp(o, "maxcompress=", 12) && strlen(o) > 12) {
 						dont_compress_beyond = strtol(o + 12, NULL, 10) * 1024 * 1024;
 						DEBUG_("dont_compress_beyond set to %zd", dont_compress_beyond);
+					}
+					else if (!strncmp(o, "nocompext=", 10) && strlen(o) > 10) {
+						if (!user_incompressible) user_incompressible = malloc(sizeof(char*) * (nccount + 2));
+						else user_incompressible = realloc(user_incompressible, sizeof(char*) * (nccount + 2));
+						user_incompressible[nccount] = strdup(o + 10);
+						DEBUG_("don't compress %s", user_incompressible[nccount]);
+						user_incompressible[nccount + 1] = NULL;
+						nccount++;
 					}
 					else
 					{
@@ -1258,6 +1267,11 @@ trysomethingelse:
 	ret = fuse_main(fusec, fusev, &fusecompress_oper);
 	
 	if (fs_opts) free(fs_opts);
+	if (user_incompressible) {
+		char **s;
+		for (s = user_incompressible; *s; s++) free(*s);
+		free(user_incompressible);
+	}
 	
 	return ret;
 }
