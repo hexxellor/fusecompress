@@ -22,6 +22,7 @@ extern pthread_mutexattr_t locktype;
 extern compressor_t *compressor_default;
 extern compressor_t *compressors[5];
 extern char *incompressible[];
+extern char **user_incompressible;
 extern char *mmapped_dirs[];
 
 extern database_t database;

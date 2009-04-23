@@ -45,13 +45,15 @@ compressor_t *compressors[5] = {
 };
 
 char *incompressible[] = {
-    ".mp3", ".ogg",
-    ".avi", ".mov", ".mpg", ".mp4", ".mkv", ".asf",
-    ".gz", ".bz2", ".zip", ".tgz", ".lzo", ".lzma", ".rar", ".ace", ".7z",
-    ".jpg", ".png", ".tiff", ".gif",
-    ".rpm", ".deb",
+    "mp3", "ogg",
+    "avi", "mov", "mpg", "mp4", "mkv", "asf",
+    "gz", "bz2", "zip", "tgz", "lzo", "lzma", "rar", "ace", "7z",
+    "jpg", "png", "tiff", "gif",
+    "rpm", "deb",
     NULL
 };
+
+char **user_incompressible = NULL;
 
 int root_fs;	/* set if you do not want to compress shared objects or binaries in mmapped_dirs[] */
 char *mmapped_dirs[] = {
