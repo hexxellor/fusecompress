@@ -1,6 +1,7 @@
 /*
     FuseCompress
     Copyright (C) 2006 Milan Svoboda <milan.svoboda@centrum.cz>
+    Copyright (C) 2009 Ulrich Hecht <uli@suse.de>
 */
 
 #include <stdio.h>
@@ -8,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <asm/byteorder.h>
 
 #include <lzo/lzo1x.h>
 #include "lzo.h"
