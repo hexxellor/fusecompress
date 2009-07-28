@@ -13,20 +13,21 @@
 #define __LZO_H
 
 #include <lzo/lzo1x.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct {
-	lzo_uint	usize;
-	lzo_uint	psize;
+	uint64_t	usize;
+	uint64_t	psize;
 } lzoHead;
 
 typedef struct {
 	char		*buf;
-	lzo_uint	 usize;	// For write: size of buffer
-	lzo_uint	 psize;	// For write: number of stored bytes
+	uint64_t	 usize;	/* For write: size of buffer */
+	uint64_t	 psize;	/* For write: number of stored bytes */
 } lzoBlock;
 
 enum lzoMode {
@@ -38,7 +39,7 @@ typedef struct {
 	int		fd;
 	enum lzoMode	mode;
 	lzoBlock	block;
-	lzo_uint	blockoff;
+	uint64_t	blockoff;
 } lzoFile;
 
 lzoFile* lzodopen(int fd, const char *mode);
