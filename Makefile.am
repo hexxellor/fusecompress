@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS =  -D_REENTRANT -D_FILE_OFFSET_BITS=64 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=199309L -D_SVID_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=500
+AM_CPPFLAGS =  -D_REENTRANT -D_FILE_OFFSET_BITS=64 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=199309L -D_SVID_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=500 -D_DARWIN_C_SOURCE
 bin_PROGRAMS = fusecompress fusecompress_offline fsck.fusecompress
 
 common_sources = compress_null.c globals.c file.c

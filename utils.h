@@ -25,3 +25,34 @@ static inline unsigned int gethash(const char *ptr, int *len)
 	*len = ptr - start + 1;
 	return hash;
 }
+
+#include "config.h"
+#include <stdint.h>
+
+#ifdef __linux__
+#include <asm/byteorder.h>
+#endif
+
+#ifdef __linux__
+static inline uint64_t from_le64(uint64_t v)
+{
+    return __le64_to_cpu(v);
+}
+static inline uint64_t to_le64(uint64_t v)
+{
+    return __cpu_to_le64(v);
+}
+#else
+#ifdef LITTLE_ENDIAN
+static inline uint64_t from_le64(uint64_t v)
+{
+    return v;
+}
+static inline uint64_t to_le64(uint64_t v)
+{
+    return v;
+}
+#else
+#error no generic big-endian support
+#endif
+#endif
