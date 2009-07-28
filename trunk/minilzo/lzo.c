@@ -164,8 +164,8 @@ static int lzoreadblock(int fd, lzoBlock *block)
 		return -1;
 	}
 	
-	head.usize = to_cpu(head.usize);
-	head.psize = to_cpu(head.psize);
+	head.usize = from_le64(head.usize);
+	head.psize = from_le64(head.psize);
 	
 	DEBUG_("head.usize %lu, head.psize %lu", (unsigned long) head.usize, (unsigned long) head.psize);
 
@@ -177,8 +177,8 @@ static int _lzowriteblock(int fd, lzoBlock *block)
 	int r;
 	lzoHead  head;
 
-	head.usize = from_le64(block->usize);
-	head.psize = from_le64(block->psize);
+	head.usize = to_le64(block->usize);
+	head.psize = to_le64(block->psize);
 
 	r = write(fd, &head, sizeof(head));
 	if ((r == -1) || (r != sizeof(head))) {
