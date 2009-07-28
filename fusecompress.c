@@ -114,7 +114,8 @@ static int fusecompress_getattr(const char *path, struct stat *stbuf)
 	// (tar checks this item and it is loudly when the result
 	// is different than what it exepects)
 	//
-	stbuf->st_ctime = stbuf->st_mtime;
+	/* seems to be incorrect, see issue #36 */
+	/* stbuf->st_ctime = stbuf->st_mtime; */
 
 	UNLOCK(&file->lock);
 	return 0;
@@ -439,11 +440,25 @@ static int fusecompress_utime(const char *path, struct utimbuf *buf)
 {
 	const char *full;
 	
-	full = fusecompress_getpath(path);
+	struct timeval timesval[2];
+	struct timeval *timesbuf=NULL;
 
-	if (utime(full, buf) == -1)
-		return -errno;
+ 	full = fusecompress_getpath(path);
 
+	DEBUG_("('%s')", full);
+
+	if (buf != NULL)
+	{
+		timesval[0].tv_usec = 0;
+		timesval[1].tv_usec = 0;
+		timesval[0].tv_sec = buf->actime;
+		timesval[1].tv_sec = buf->modtime;
+		timesbuf=timesval;
+	}
+		
+	if (lutimes(full,timesbuf) == -1)
+ 		return -errno;
+	
 	return 0;
 }
 
