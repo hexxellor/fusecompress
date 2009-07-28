@@ -38,7 +38,8 @@ INSTALLATION
 ~~~~~~~~~~~~
 To compile a release build, run
 
-cmake .
+./autogen.sh (If there is no "configure" file)
+./configure
 make
 
 For more information, see

@@ -9,6 +9,8 @@
 
 #define FUSE_USE_VERSION 22
 
+#include "config.h"
+
 #include <fuse.h>
 #include <string.h>
 #include <stdio.h>

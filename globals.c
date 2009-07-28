@@ -4,6 +4,8 @@
     (C) 2009 Ulrich Hecht <uli@suse.de>
 */
 
+#include "config.h"
+
 #include <pthread.h>
 #include <sys/types.h>
 #include <assert.h>
