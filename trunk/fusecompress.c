@@ -19,13 +19,23 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <errno.h>
+#ifdef HAVE_SYS_STATFS_H
 #include <sys/statfs.h>
+#endif
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+#ifdef HAVE_SYS_MOUNT_H
+#include <sys/mount.h>
+#endif
 #include <sys/mman.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#ifdef HAVE_SYS_FSUID_H
 #include <sys/fsuid.h>
+#endif
 #include <ctype.h>
 #include <limits.h>
 
@@ -189,8 +199,12 @@ static int fusecompress_mknod(const char *path, mode_t mode, dev_t rdev)
 	file = direct_open(full, TRUE);
 
 	fc = fuse_get_context();
+#ifdef HAVE_SETFSUID
 	uid = setfsuid(fc->uid);
+#endif
+#ifdef HAVE_SETFSGID
 	gid = setfsgid(fc->gid);
+#endif
 	
 	if (mknod(full, mode, rdev) == -1)
 	{
@@ -199,8 +213,12 @@ static int fusecompress_mknod(const char *path, mode_t mode, dev_t rdev)
 
 	UNLOCK(&file->lock);
 
+#ifdef HAVE_SETFSUID
 	setfsuid(uid);
+#endif
+#ifdef HAVE_SETFSGID
 	setfsgid(gid);
+#endif
 
 	return ret;
 }
@@ -218,14 +236,22 @@ static int fusecompress_mkdir(const char *path, mode_t mode)
 	DEBUG_("('%s')", full);
 
 	fc = fuse_get_context();
+#ifdef HAVE_SETFSUID
 	uid = setfsuid(fc->uid);
+#endif
+#ifdef HAVE_SETFSGID
 	gid = setfsgid(fc->gid);
+#endif
 	
 	if (mkdir(full, mode) == -1)
 		ret = -errno;
 
+#ifdef HAVE_SETFSUID
 	setfsuid(uid);
+#endif
+#ifdef HAVE_SETFSGID
 	setfsgid(gid);
+#endif
 	
 	return ret;
 }
@@ -733,9 +759,11 @@ static int fusecompress_fsync(const char *path, int isdatasync,
 
 	descriptor = (descriptor_t *) fi->fh;
 
+#ifdef HAVE_FDATASYNC
 	if (isdatasync)
 		res = fdatasync(descriptor->fd);
 	else
+#endif
 		res = fsync(descriptor->fd);
 
 	if (res == -1)
@@ -766,6 +794,9 @@ static void *fusecompress_init(void)
 
 	pthread_mutexattr_init(&locktype);
 #ifdef DEBUG
+#ifndef PTHREAD_MUTEX_ERRORCHECK_NP
+#define PTHREAD_MUTEX_ERRORCHECK_NP PTHREAD_MUTEX_ERRORCHECK
+#endif
 	pthread_mutexattr_settype(&locktype, PTHREAD_MUTEX_ERRORCHECK_NP);
 #endif
 
@@ -1003,7 +1034,11 @@ int main(int argc, char *argv[])
 	detach = 0;
 #endif
 	fusev[fusec++] = "-o";
-	fusev[fusec++] = "nonempty,kernel_cache,default_permissions,use_ino";
+	fusev[fusec++] = 
+#ifndef __APPLE__
+			 "nonempty,"
+#endif
+			 "kernel_cache,default_permissions,use_ino";
 
 	if (geteuid() == 0)
 	{

@@ -9,10 +9,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
-#include <asm/byteorder.h>
 
 #include <lzo/lzo1x.h>
 #include "lzo.h"
+#include "../utils.h"
 
 // #include "../log.h"
 #define ERR_(...)
@@ -164,8 +164,8 @@ static int lzoreadblock(int fd, lzoBlock *block)
 		return -1;
 	}
 	
-	head.usize = __le64_to_cpu(head.usize);
-	head.psize = __le64_to_cpu(head.psize);
+	head.usize = to_cpu(head.usize);
+	head.psize = to_cpu(head.psize);
 	
 	DEBUG_("head.usize %lu, head.psize %lu", (unsigned long) head.usize, (unsigned long) head.psize);
 
@@ -177,8 +177,8 @@ static int _lzowriteblock(int fd, lzoBlock *block)
 	int r;
 	lzoHead  head;
 
-	head.usize = __cpu_to_le64(block->usize);
-	head.psize = __cpu_to_le64(block->psize);
+	head.usize = from_le64(block->usize);
+	head.psize = from_le64(block->psize);
 
 	r = write(fd, &head, sizeof(head));
 	if ((r == -1) || (r != sizeof(head))) {

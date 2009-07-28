@@ -20,13 +20,13 @@
 #include <sys/syslog.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <asm/byteorder.h>
 
 #include "direct_compress.h"
 #include "globals.h"
 #include "log.h"
 #include "structs.h"
 #include "file.h"
+#include "utils.h"
 
 compressor_t *find_compressor(const header_t *fh)
 {
@@ -72,7 +72,7 @@ int file_write_header(int fd, compressor_t *compressor, off_t size)
 	fh.id[1] = '\135';
 	fh.id[2] = '\211';
 	fh.type = compressor->type;
-	fh.size = __cpu_to_le64(size);
+	fh.size = to_le64(size);
 
 	return write(fd, &fh, sizeof(fh));
 }
@@ -104,7 +104,7 @@ int file_read_header_fd(int fd, compressor_t **compressor, off_t *size)
 
 	if (r == sizeof(fh))
 	{
-		fh.size = __le64_to_cpu(fh.size);
+		fh.size = from_le64(fh.size);
 		header_compressor = file_compressor(&fh);
 		if (header_compressor)
 		{
