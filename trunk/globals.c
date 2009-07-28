@@ -1,6 +1,7 @@
 /*
     FuseCompress
     Copyright (C) 2005 Milan Svoboda <milan.svoboda@centrum.cz>
+    (C) 2009 Ulrich Hecht <uli@suse.de>
 */
 
 #include <pthread.h>
@@ -32,15 +33,23 @@ compressor_t *compressors[5] = {
 	&module_null,
 #ifdef HAVE_BZIP2
 	&module_bz2,
+#else
+	NULL,
 #endif
 #ifdef HAVE_ZLIB
 	&module_gzip,
+#else
+	NULL,
 #endif
 #ifdef HAVE_LZO2
 	&module_lzo,
+#else
+	NULL,
 #endif
 #ifdef HAVE_LZMA
 	&module_lzma,
+#else
+	NULL,
 #endif
 };
 
