@@ -5,6 +5,7 @@
 *
 *
 * Author: Milan Svoboda <milan.svoboda@centrum.cz>, (C) 2005
+* (C) 2009 Ulrich Hecht <uli@suse.de>
 *
 * Copyright: See COPYING file that comes with this distribution
 *
@@ -40,7 +41,7 @@ compressor_t *find_compressor_name(const char *name)
 	int i;
 
 	for (i = 0; i < sizeof(compressors) / sizeof(compressors[0]); i++)
-		if (!strcmp(name, compressors[i]->name))
+		if (compressors[i] && !strcmp(name, compressors[i]->name))
 			return compressors[i];
 	return NULL;
 }
