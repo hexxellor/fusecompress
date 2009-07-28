@@ -2,7 +2,6 @@ This page tells you how to build FuseCompress from source.
 
 == What you need ==
   * the [http://fuse.sourceforge.net/ FUSE] library, libfuse. I am using version 2.7.2 as shipped with openSUSE 11.0. Newer version should do, too.
-  * [http://www.cmake.org/ CMake]
 
 You will also want to have at least one of the following data compression libraries:
 
@@ -13,7 +12,7 @@ You will also want to have at least one of the following data compression librar
 
 In openSUSE, you can get all these packages by running
 {{{
-zypper in cmake fuse-devel zlib-devel libbz2-devel lzma-alpha-devel lzo-devel
+zypper in fuse-devel zlib-devel libbz2-devel lzma-alpha-devel lzo-devel
 }}}
 as root.
 
@@ -21,11 +20,15 @@ as root.
 
 == Compiling it ==
 
-Depending on whether you want to create a debug or a release build, enter `cmake -DCMAKE_BUILD_TYPE=debug .` or `cmake .`. You should end up with a binary called `fusecompress` as well as the tools `fsck.fusecompress` and `fusecompress_offline`.
+Run `./autogen.sh` if there is no `configure` file in the source tree yet.
+
+Depending on whether you want to create a debug or a release build, enter `./configure --enable-debug` or just `./configure`. You should end up with a binary called `fusecompress` as well as the tools `fsck.fusecompress` and `fusecompress_offline`.
 
 The build system will autodetect the available compression libraries and enable the corresponding compression modules. You can explicitly disable compression modules you do not want included:
 
-cmake -DWITH_GZ=off -DWITH_LZMA=off -DWITH_LZO=off -DWITH_BZ2=off
+{{{
+./configure --disable-gz --disable-bz2 --disable-lzma --disable-lzo
+}}}
 
 This example will result in a fusecompress binary that can only handle null-compressed files.
 
