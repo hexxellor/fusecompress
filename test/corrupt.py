@@ -35,7 +35,8 @@ for comp in ['lzo','lzma','gz','bz2','null']:
     a.close()
     os.system('fusermount -u test')
     shutil.rmtree('test')
-    os.unlink('log.'+comp)
+    try: os.unlink('log.'+comp)
+    except: pass
     continue
 
   os.abort()

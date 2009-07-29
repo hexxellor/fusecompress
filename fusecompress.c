@@ -1021,11 +1021,8 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
 	FILE* debugout = stderr;
 #endif
-	const char* const short_options = "dfhvo:c:l:"
-#ifdef DEBUG
-	"s:"
-#endif
-	;
+	const char* const short_options = "dfhvo:c:l:s:";
+	
 	int detach = 1;
 	int noterm = 0; /* do not exit on SIGTERM */
 
@@ -1169,15 +1166,15 @@ int main(int argc, char *argv[])
 				detach = 1;
 				break;
 
-#ifdef DEBUG
 			case 's':
+#ifdef DEBUG
 				debugout = fopen(optarg, "w");
 				if(!debugout) {
 					perror("could not open debug output");
 					exit(EXIT_FAILURE);
 				}
-				break;
 #endif
+				break;
 				
 			case -1:
 				break;
