@@ -191,10 +191,13 @@ static int fusecompress_mknod(const char *path, mode_t mode, dev_t rdev)
 	gid_t gid;
 	struct fuse_context *fc;
 	file_t     *file;
+#ifdef CONFIG_OSX
+	int fd;
+#endif
 	
 	full = fusecompress_getpath(path);
 
-	DEBUG_("('%s')", full);
+	DEBUG_("('%s') mode 0%o rdev 0x%x", full,mode,rdev);
 
 	file = direct_open(full, TRUE);
 
@@ -206,8 +209,21 @@ static int fusecompress_mknod(const char *path, mode_t mode, dev_t rdev)
 	gid = setfsgid(fc->gid);
 #endif
 	
-	if (mknod(full, mode, rdev) == -1)
-	{
+#ifdef CONFIG_OSX
+	/* On Linux, any user can use mknod() for regular files, but on OSX
+	   it always requires superuser privileges, so for regular files, we
+	   use open() instead */
+	if (S_ISREG(mode)) {
+		if ((fd = open(full, O_CREAT|O_TRUNC|O_WRONLY, mode)) == -1) {
+			ret = -errno;
+		}
+		else {
+			close(fd);
+		}
+	}
+	else
+#endif
+	if (mknod(full, mode, rdev) == -1) {
 		ret = -errno;
 	}
 
@@ -219,7 +235,6 @@ static int fusecompress_mknod(const char *path, mode_t mode, dev_t rdev)
 #ifdef HAVE_SETFSGID
 	setfsgid(gid);
 #endif
-
 	return ret;
 }
 
@@ -932,7 +947,15 @@ static struct fuse_operations fusecompress_oper = {
 
 static void print_help(void)
 {
-	printf("Usage: %s [OPTIONS] /storage/directory [/mount/point]\n\n", "fusecompress");
+	printf("Usage: %s [OPTIONS] /storage/directory "
+#ifndef CONFIG_OSX
+	       "["
+#endif
+	       "/mount/point"
+#ifndef CONFIG_OSX
+	       "]"
+#endif
+	       "\n\n", "fusecompress");
 
 	printf("\t-h                   print this help\n");
 	printf("\t-v                   print version\n");
@@ -1032,7 +1055,7 @@ int main(int argc, char *argv[])
 #endif
 	fusev[fusec++] = "-o";
 	fusev[fusec++] = 
-#ifndef __APPLE__
+#ifndef CONFIG_OSX
 			 "nonempty,"
 #endif
 			 "kernel_cache,default_permissions,use_ino";
@@ -1189,12 +1212,15 @@ int main(int argc, char *argv[])
 
 	argc -= optind;
 	argv += optind;
+#ifndef CONFIG_OSX /* mounting over the backing directory hangs on OSX */
 	if (argc == 1)
 	{
 		/* old syntax, only mountpoint given */
 		fusev[fusec++] = root = argv[0];
 	}
-	else if (argc == 2)
+	else
+#endif
+	if (argc == 2)
 	{
 		/* new syntax (compatible with 1.99.x), backing directory and mountpoint given */
 		fusev[fusec++] = argv[1];
@@ -1243,6 +1269,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
+#ifdef __linux__
 	/* try to raise RLIMIT_NOFILE to fs.file-max */
 	struct rlimit rl;
 	char buf[80];
@@ -1278,6 +1305,7 @@ trysomethingelse:
 				WARN_("failed to set file descriptor limit to maximum: %s", strerror(errno));
 		}
 	}
+#endif /* __linux__ */
 	
 	openlog("fusecompress", LOG_PERROR | LOG_CONS, LOG_USER);
 #ifndef DEBUG

@@ -8,6 +8,17 @@ AM_PROG_CC_C_O
 CFLAGS="$CFLAGS -Wall -g"
 LIBS=
 
+AC_MSG_CHECKING([checking for Mac OS X])
+if test `uname -s` == Darwin ; then
+	AC_MSG_RESULT([yes])
+	AC_DEFINE(CONFIG_OSX,1,[Compiling on Mac OS X])
+	AM_CONDITIONAL(CONFIG_OSX, true)
+	CPPFLAGS="$CPPFLAGS -I/opt/local/include"
+	LDFLAGS="$LDFLAGS -L/opt/local/lib"
+else
+	AC_MSG_RESULT([no])
+fi
+
 # Checks for header files.
 AC_CHECK_HEADERS([sys/mount.h sys/fsuid.h fcntl.h limits.h stdint.h stdlib.h string.h sys/statfs.h sys/param.h sys/statvfs.h sys/time.h syslog.h unistd.h utime.h])
 
