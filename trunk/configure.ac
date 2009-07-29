@@ -26,7 +26,7 @@ AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([setfsuid setfsgid fchdir fdatasync ftruncate lchown memset mkdir rmdir strchr strdup strerror strstr strtol utime])
 
-AC_C_BIGENDIAN(AC_DEFINE(BIG_ENDIAN,1,[big-endian]),AC_DEFINE(LITTLE_ENDIAN,1,[little-endian]),AC_MSG_ERROR([unknown endianness]))
+AC_C_BIGENDIAN(AC_DEFINE(FC_BIG_ENDIAN,1,[big-endian]),AC_DEFINE(FC_LITTLE_ENDIAN,1,[little-endian]),AC_MSG_ERROR([unknown endianness]))
 
 AC_ARG_ENABLE(zlib,
         [  --disable-gz            Don't compile DEFLATE compression module])

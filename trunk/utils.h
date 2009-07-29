@@ -43,7 +43,7 @@ static inline uint64_t to_le64(uint64_t v)
     return __cpu_to_le64(v);
 }
 #else
-#ifdef LITTLE_ENDIAN
+#ifdef FC_LITTLE_ENDIAN
 static inline uint64_t from_le64(uint64_t v)
 {
     return v;
