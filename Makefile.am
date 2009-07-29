@@ -2,8 +2,7 @@
 
 AM_CPPFLAGS =  -D_REENTRANT -D_FILE_OFFSET_BITS=64 -D_POSIX_SOURCE -D_POSIX_C_SOURCE=199309L -D_SVID_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=500
 if CONFIG_OSX
-AM_CPPFLAGS += -D_DARWIN_C_SOURCE -D__FreeBSD__=10 -I/opt/local/include
-AM_LDFLAGS = -L/opt/local/include
+AM_CPPFLAGS += -D_DARWIN_C_SOURCE -D__FreeBSD__=10
 endif
 
 bin_PROGRAMS = fusecompress fusecompress_offline fsck.fusecompress
