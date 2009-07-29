@@ -7,7 +7,7 @@
     See the file COPYING.
 */
 
-#define FUSE_USE_VERSION 22
+#define FUSE_USE_VERSION 26
 
 #include "config.h"
 
@@ -772,14 +772,14 @@ static int fusecompress_fsync(const char *path, int isdatasync,
 	return 0;
 }
 
-static int fusecompress_statfs(const char *path, struct statfs *stbuf)
+static int fusecompress_statfs(const char *path, struct statvfs *stbuf)
 {
 	int         res;
 	const char *full;
 
 	full = fusecompress_getpath(path);
 
-	res = statfs(full, stbuf);
+	res = statvfs(full, stbuf);
 	if(res == -1)
 		return -errno;
 
@@ -788,7 +788,7 @@ static int fusecompress_statfs(const char *path, struct statfs *stbuf)
 
 #define REISERFS_SUPER_MAGIC 0x52654973
 
-static void *fusecompress_init(void)
+static void *fusecompress_init(struct fuse_conn_info* conn)
 {
 	struct statfs fs;
 
@@ -1313,7 +1313,7 @@ trysomethingelse:
 			WARN_("unable to set SIGTERM handler, will terminate on SIGTERM");
 	}
 	
-	ret = fuse_main(fusec, fusev, &fusecompress_oper);
+	ret = fuse_main(fusec, fusev, &fusecompress_oper, NULL);
 	
 	if (fs_opts) free(fs_opts);
 	if (user_incompressible) {
