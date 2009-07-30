@@ -17,6 +17,7 @@ if test `uname -s` == Darwin ; then
 	LDFLAGS="$LDFLAGS -L/opt/local/lib"
 else
 	AC_MSG_RESULT([no])
+	AM_CONDITIONAL(CONFIG_OSX, false)
 fi
 
 # Checks for header files.
