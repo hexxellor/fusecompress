@@ -43,8 +43,11 @@ int is_compressed(const char *fpath)
 	fd = open(fpath, O_RDONLY);
 	if (fd < 0)
 		return -1;
-	if (read(fd, buf, 3) < 0)
+	if (read(fd, buf, 3) < 0) {
+		close(fd);
 		return -1;
+	}
+	close(fd);
 	if (memcmp(magic, buf, 3) == 0)
 		return 1;
 	else
