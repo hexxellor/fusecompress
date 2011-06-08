@@ -172,7 +172,6 @@ static off_t lzmaDecompress(int fd_source, int fd_dest)
 		while(lstr.avail_in) {
 			lstr.next_out = bufout;
 			lstr.avail_out = BUF_SIZE;
-			DEBUG_("decoding");
 			ret = lzma_code(&lstr, LZMA_RUN);
 			if(ret < 0) {	/* decompression error */
 				lzma_end(&lstr);
@@ -298,7 +297,7 @@ int lzmaWrite(struct lzmafile* file, void* buf, unsigned int len)
 
 int lzmaRead(struct lzmafile* file, void* buf, unsigned int len)
 {
-	DEBUG_("lzmaRead started");
+	DEBUG_("lzmaRead started at %d", lseek(file->fd, 0, SEEK_CUR));
 	int ret;
 	
 	if(file->mode != 'r') return -1;
