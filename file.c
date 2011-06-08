@@ -74,6 +74,7 @@ int file_write_header(int fd, compressor_t *compressor, off_t size)
 	fh.type = compressor->type;
 	fh.size = to_le64(size);
 
+	DEBUG_("writing header to %d at %d\n", fd, lseek(fd, 0, SEEK_CUR));
 	return write(fd, &fh, sizeof(fh));
 }
 
@@ -98,6 +99,7 @@ int file_read_header_fd(int fd, compressor_t **compressor, off_t *size)
 	assert(compressor);
 	assert(size);
 
+	DEBUG_("reading header from %d at %d\n", fd, lseek(fd, 0, SEEK_CUR));
 	r = read(fd, &fh, sizeof(fh));
 	if (r == -1)
 		return r;
