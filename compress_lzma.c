@@ -173,7 +173,7 @@ static off_t lzmaDecompress(int fd_source, int fd_dest)
 			lstr.next_out = bufout;
 			lstr.avail_out = BUF_SIZE;
 			ret = lzma_code(&lstr, LZMA_RUN);
-			if(ret < 0) {	/* decompression error */
+			if(ret != LZMA_OK && ret != LZMA_STREAM_END) {	/* decompression error */
 				lzma_end(&lstr);
 				ERR_("lzma_code failed: %d",ret);
 				close(dup_fd);
