@@ -642,6 +642,12 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 
 		DEBUG_("writing header...");
 
+                /* previous header reads might have advanced the fd to 12 */
+		if (lseek(descriptor->fd, 0, SEEK_SET) < 0) {
+			CRIT_("\t...seek failed!");
+			return FAIL;
+		}
+
 		ret = file_write_header(descriptor->fd,
 					file->compressor,
 					file->size);
