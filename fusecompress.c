@@ -1035,7 +1035,8 @@ int main(int argc, char *argv[])
 	int               fusec = 0;
 	int               next_option;
 	char             *fusev[argc + MAX_OPTS];
-	char             *root = NULL;
+	char             *root = NULL;		/* uncompressed FS root */
+	char		 *mountpoint = NULL;	/* compressed mountpoint */
 	char             *fs_opts = NULL;
 	char             *o;
 	int               ret;
@@ -1074,6 +1075,7 @@ int main(int argc, char *argv[])
 	decomp_cache_size = 0;
 	max_decomp_cache_size = 100 * 1024 * 1024;
 	dont_compress_beyond = -1;
+	int no_opt_args = 0;	/* counter for non-option args */
 	
 	do {
 		if (fusec >= argc + MAX_OPTS - 2)
@@ -1200,8 +1202,26 @@ int main(int argc, char *argv[])
 				break;
 				
 			case -1:
+				if (no_opt_args == 0) {
+					root = argv[optind];
+					next_option = 0;
+					optind++;
+				}
+				else if (no_opt_args == 1 && argv[optind]) {
+					mountpoint = argv[optind];
+					next_option = 0;
+					optind++;
+				}
+				else if (root != NULL) {
+					/* no more options, root has been specified -> we're good */
+					break;
+				}
+				else {
+					print_help();
+					exit(EXIT_FAILURE);
+				}
+				no_opt_args++;
 				break;
-
 			default:
 				print_help();
 				exit(EXIT_FAILURE);
@@ -1210,28 +1230,18 @@ int main(int argc, char *argv[])
 
 	if(!detach) fusev[fusec++] = "-f";
 
-	argc -= optind;
-	argv += optind;
-#ifndef CONFIG_OSX /* mounting over the backing directory hangs on OSX */
-	if (argc == 1)
-	{
-		/* old syntax, only mountpoint given */
-		fusev[fusec++] = root = argv[0];
-	}
-	else
+	if (!mountpoint) {
+#ifdef CONFIG_OSX
+		/* mounting over the backing directory hangs on OSX */
+		ERR_("mounting over the backing directory not supported on OSX\n");
+		print_help();
+		exit(EXIT_FAILURE);
+#else
+		mountpoint = root;
 #endif
-	if (argc == 2)
-	{
-		/* new syntax (compatible with 1.99.x), backing directory and mountpoint given */
-		fusev[fusec++] = argv[1];
-		root = argv[0];
 	}
-	else
-	{
-	    print_help();
-	    exit(EXIT_FAILURE);
-	}
-
+	fusev[fusec++] = mountpoint;
+	
 	// Sets the default compressor if user didn't choose one.
 	//
 	if (!compressor_default)
