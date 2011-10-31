@@ -569,7 +569,7 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 	if (dedup_enabled && (fi->flags & (O_RDWR | O_CREAT | O_TRUNC))) {
 		if (do_undedup(file) == FAIL) {
 			UNLOCK(&file->lock);
-			return -EIO;
+			return -errno;
 		}
 	}
 #endif
