@@ -1,3 +1,5 @@
+#include <string.h>
+
 /**
  * strestr - string end string - tests if the needle is the last
  *           substring in the haystack

@@ -297,7 +297,7 @@ int lzmaWrite(struct lzmafile* file, void* buf, unsigned int len)
 
 int lzmaRead(struct lzmafile* file, void* buf, unsigned int len)
 {
-	DEBUG_("lzmaRead started at %d", lseek(file->fd, 0, SEEK_CUR));
+	DEBUG_("lzmaRead started at %zd", lseek(file->fd, 0, SEEK_CUR));
 	int ret;
 	
 	if(file->mode != 'r') return -1;
