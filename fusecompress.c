@@ -119,6 +119,9 @@ static int fusecompress_getattr(const char *path, struct stat *stbuf)
 		}
 	}
 
+	if (dedup_enabled)
+		stbuf->st_nlink = 1;
+	
 	// Set right time of the last status change this way because
 	// there is no call that allows to change it directly on file.
 	//
