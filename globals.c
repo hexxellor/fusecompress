@@ -89,12 +89,14 @@ database_t comp_database = {
 	.entries = 0,
 };
 
+#ifdef WITH_DEDUP
 database_t dedup_database = {
 	.head = LIST_HEAD_INIT(dedup_database.head),
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.cond = PTHREAD_COND_INITIALIZER,		// When new item is added to the list
 	.entries = 0,
 };
+#endif
 
 #ifdef DEBUG
 int _debug_on = 1;

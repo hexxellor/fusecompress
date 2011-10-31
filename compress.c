@@ -466,10 +466,12 @@ void do_compress(file_t *file)
 	file->compressor = compressor;
 	file->size = filesize;
 
+#ifdef WITH_DEDUP
 	/* no longer present in uncompressed form, so we need to make
 	   sure it is removed from the deduplication database */
 	if (dedup_enabled)
 		dedup_discard(file);
+#endif
 	
 	// Access and modification time can be only changed
 	// after the descriptor is closed.

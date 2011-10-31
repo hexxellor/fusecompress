@@ -48,6 +48,8 @@ AC_ARG_ENABLE(lzma,
         [  --disable-lzma          Don't compile LZMA compression module])
 AC_ARG_ENABLE(lzo,
         [  --disable-lzo           Don't compile LZO compression module])
+AC_ARG_ENABLE(dedup,
+        [  --enable-dedup          Enable deduplication module (EXPERIMENTAL)])
 AC_ARG_ENABLE(debug,
         [  --enable-debug          Enable debug output])
         
@@ -92,9 +94,9 @@ if test x$enable_lzo != xno ; then
            AC_DEFINE(HAVE_LZO2,1,[Compiling with LZO support])
         fi
 fi
-if test x$enable_mhash != xno ; then
-	AC_CHECK_HEADER(mhash.h,have_mhash_hdr=yes)
-	AC_CHECK_LIB(mhash,mhash_init,have_mhash_lib=yes)
+if test x$enable_dedup == xyes ; then
+	AC_CHECK_HEADER(mhash.h,have_mhash_hdr=yes,AC_MSG_ERROR([mhash header files not found]))
+	AC_CHECK_LIB(mhash,mhash_init,have_mhash_lib=yes,AC_MSG_ERROR([no suitable libmhash found]))
 	if test x$have_mhash_hdr == xyes -a x$have_mhash_lib == xyes ; then
 	   have_mhash=yes
 	   LIBS="$LIBS -lmhash"
@@ -107,6 +109,7 @@ AM_CONDITIONAL(HAVE_BZIP2, test x$have_bzip2 == xyes)
 AM_CONDITIONAL(HAVE_LZMA, test x$have_lzma == xyes)
 AM_CONDITIONAL(HAVE_LZO2, test x$have_lzo == xyes)
 AM_CONDITIONAL(HAVE_MHASH, test x$have_mhash == xyes)
+AM_CONDITIONAL(DEDUP, test x$enable_dedup == xyes)
 
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 PKG_CHECK_MODULES(fuse, [fuse >= 2.2])

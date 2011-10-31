@@ -126,10 +126,12 @@ void _direct_open_purge(int force)
 				DEBUG_("compress file in background");
 				background_compress(file);
 			}
+#ifdef WITH_DEDUP
 			else if (dedup_enabled && !file->deleted && !file->deduped) {
                                 DEBUG_("deduplicating file in background");
                                 background_dedup(file);
 			}
+#endif
 			else
 			{
 				DEBUG_("trim from database");

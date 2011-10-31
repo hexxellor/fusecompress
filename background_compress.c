@@ -137,7 +137,9 @@ void *thread_compress(void *arg)
 		//
 		assert(file->accesses > 0);
 
+#ifdef WITH_DEDUP
 		if (!entry->is_dedup) {
+#endif
 		        /* compression entry */
 		        
 			// If entry->accesses = 1 we're the only one accessing it, also only
@@ -150,6 +152,7 @@ void *thread_compress(void *arg)
 				DEBUG_("compressing '%s'", file->filename);
 				do_compress(file);
 			}
+#ifdef WITH_DEDUP
 		}
 		else {
 		        /* deduplication entry */
@@ -159,6 +162,7 @@ void *thread_compress(void *arg)
 				file->deduped = TRUE;
 			}
 		}
+#endif
 
 		// Restore entry->accesses to original value
 		// (@see background_compress_dedup())

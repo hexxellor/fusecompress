@@ -296,10 +296,12 @@ static int fusecompress_unlink(const char *path)
 
 	file = direct_open(full, TRUE);
 
+#ifdef WITH_DEDUP
 	/* file is no longer available, make sure we don't use it
 	   as a link target */
 	if (dedup_enabled)
 		dedup_discard(file);
+#endif
 	
 	if (unlink(full) == 0)
 	{
@@ -356,11 +358,13 @@ static int fusecompress_rename(const char *from, const char *to)
 	file_from->accesses--;
 	file_to->accesses--;
 
+#ifdef WITH_DEDUP
 	/* file_from is no longer available, make sure we don't use
 	   it as a link target */
 	/* XXX: maybe renaming in the dedup DB would be faster? */
 	if (dedup_enabled)
 		dedup_discard(file_from);
+#endif
 	
 	if (rename(full_from, full_to) == 0)
 	{
@@ -556,12 +560,14 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 		fi->flags &= ~O_APPEND;
 	}
 	
+#ifdef WITH_DEDUP
 	if (dedup_enabled && (fi->flags & (O_RDWR | O_CREAT | O_TRUNC))) {
 		if (do_undedup(file) == FAIL) {
 			UNLOCK(&file->lock);
 			return -EIO;
 		}
 	}
+#endif
 	
 	descriptor->fd = file_open(full, fi->flags);
 	if (descriptor->fd == FAIL)
@@ -1184,9 +1190,11 @@ int main(int argc, char *argv[])
 						user_incompressible[nccount + 1] = NULL;
 						nccount++;
 					}
+#ifdef WITH_DEDUP
 					else if (!strcmp(o, "dedup")) {
 						dedup_enabled = TRUE;
 					}
+#endif
 					else
 					{
 						fusev[fusec++] = "-o";
