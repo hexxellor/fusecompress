@@ -130,8 +130,8 @@ int do_undedup(file_t *file)
   struct statvfs stat;
   if(statvfs(file->filename, &stat) < 0)
           return FAIL;
-  if(stat.f_bsize * stat.f_bavail < file->size) {
-          if(!(geteuid() == 0 && stat.f_bsize * stat.f_bfree >= file->size)) {
+  if(stat.f_bsize * stat.f_bavail < st.st_size) {
+          if(!(geteuid() == 0 && stat.f_bsize * stat.f_bfree >= st.st_size)) {
                   errno = ENOSPC;
                   return FAIL;
           }
