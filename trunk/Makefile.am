@@ -26,7 +26,7 @@ else
 AM_CPPFLAGS += -DNDEBUG
 endif
 
-fusecompress_SOURCES = $(common_sources) background_compress.c fusecompress.c compress.c direct_compress.c log.c
+fusecompress_SOURCES = $(common_sources) background_compress.c fusecompress.c compress.c direct_compress.c log.c dedup.c
 fusecompress_offline_SOURCES = $(common_sources) tools/offline.c
 fsck_fusecompress_SOURCES = $(common_sources) tools/fsck.c
 

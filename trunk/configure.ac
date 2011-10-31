@@ -55,6 +55,7 @@ have_zlib=no
 have_bzip2=no
 have_lzma=no
 have_lzo=no
+have_mhash=no
 if test x$enable_zlib != xno ; then
 	AC_CHECK_HEADER(zlib.h,have_zlib_hdr=yes)
         AC_CHECK_LIB(z,gzwrite,have_zlib_lib=yes)
@@ -91,11 +92,21 @@ if test x$enable_lzo != xno ; then
            AC_DEFINE(HAVE_LZO2,1,[Compiling with LZO support])
         fi
 fi
+if test x$enable_mhash != xno ; then
+	AC_CHECK_HEADER(mhash.h,have_mhash_hdr=yes)
+	AC_CHECK_LIB(mhash,mhash_init,have_mhash_lib=yes)
+	if test x$have_mhash_hdr == xyes -a x$have_mhash_lib == xyes ; then
+	   have_mhash=yes
+	   LIBS="$LIBS -lmhash"
+	   AC_DEFINE(HAVE_MHASH,1,[Compiling with MHASH support])
+	fi
+fi
 AM_CONDITIONAL(DEBUG, test x$enable_debug == xyes)
 AM_CONDITIONAL(HAVE_ZLIB, test x$have_zlib == xyes)
 AM_CONDITIONAL(HAVE_BZIP2, test x$have_bzip2 == xyes)
 AM_CONDITIONAL(HAVE_LZMA, test x$have_lzma == xyes)
 AM_CONDITIONAL(HAVE_LZO2, test x$have_lzo == xyes)
+AM_CONDITIONAL(HAVE_MHASH, test x$have_mhash == xyes)
 
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH
 PKG_CHECK_MODULES(fuse, [fuse >= 2.2])

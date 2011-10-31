@@ -1,6 +1,7 @@
 /*
     FuseCompress
     Copyright (C) 2005 Milan Svoboda <milan.svoboda@centrum.cz>
+    (C) 2011 Ulrich Hecht <uli@suse.de>
 */
 
 extern int min_filesize_background;
@@ -12,6 +13,8 @@ extern int decomp_cache_size;
 extern int max_decomp_cache_size;
 
 extern size_t dont_compress_beyond;
+
+extern int dedup_enabled;
 
 #define DC_PAGE_SIZE (4096)
 
@@ -27,6 +30,7 @@ extern char *mmapped_dirs[];
 
 extern database_t database;
 extern database_t comp_database;
+extern database_t dedup_database;
 
 void *thread_compress(void *arg);
 

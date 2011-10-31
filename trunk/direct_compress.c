@@ -126,6 +126,10 @@ void _direct_open_purge(int force)
 				DEBUG_("compress file in background");
 				background_compress(file);
 			}
+			else if (dedup_enabled && !file->deleted && !file->deduped) {
+                                DEBUG_("deduplicating file in background");
+                                background_dedup(file);
+			}
 			else
 			{
 				DEBUG_("trim from database");
@@ -199,6 +203,7 @@ file_t* direct_new_file(unsigned int filename_hash, const char *filename, int le
 	file->accesses = 0;
 	file->size = (off_t) -1;	// -1 means unknown file size
 	file->deleted = FALSE;
+	file->deduped = FALSE;
 	file->compressor = NULL;
 	file->type = 0;
 	file->dontcompress = FALSE;
@@ -262,7 +267,7 @@ file_t *direct_open(const char *filename, int stabile)
 				// Caller require stable enviroment - cancel compressing
 				// if it is running now or block until decompression ends...
 				//
-				while (file->status & (COMPRESSING | DECOMPRESSING))
+				while (file->status & (COMPRESSING | DECOMPRESSING | DEDUPING))
 				{
 					file->status |= CANCEL;
 					pthread_cond_wait(&file->cond, &file->lock);

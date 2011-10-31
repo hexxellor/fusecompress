@@ -70,6 +70,7 @@ typedef struct
 #define COMPRESSING	(1 << 1)
 #define DECOMPRESSING	(1 << 2)
 #define CANCEL		(1 << 3)
+#define DEDUPING	(1 << 4)
 
 /**
  * Used in database
@@ -90,6 +91,7 @@ typedef struct {
 	int		 dontcompress;
 	int		 type;
 	int		 status;
+	int		 deduped;	/**< File has been deduplicated. */
 	
 	void**           cache;
 	int              cache_size;
@@ -122,9 +124,22 @@ typedef struct {
  */
 typedef struct {
 	file_t *file;		/**< Pointer to the file_t of the file
-				     scheduled to be compressed in the safe time */
+				     scheduled to be compressed/deduplicated at
+				     a safe time. */
 	struct list_head list;
+	int is_dedup;		/**< Set if file is supposed to be deduplicated
+                                     and not compressed. */
 } compress_t;
+
+/**
+ * Deduplication database entry.
+ */
+typedef struct {
+        struct list_head list;
+        char *filename;
+        unsigned int filename_hash;
+        unsigned char md5[16];	/**< MD5 hash over the on-disk data */
+} dedup_t;
 
 /**
  * Main database structure

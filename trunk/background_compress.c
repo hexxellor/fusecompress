@@ -2,6 +2,7 @@
  *
  * Copyright (C) 2005 Anders Aagaard <aagaande@gmail.com>
  * Copyright (C) 2005 Milan Svoboda <milan.svoboda@centrum.cz>
+ * Copyright (C) 2011 Ulrich Hecht <uli@suse.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -32,17 +33,19 @@
 #include "globals.h"
 #include "file.h"
 #include "compress.h"
+#include "dedup.h"
 #include "log.h"
 #include "direct_compress.h"
 #include "background_compress.h"
 
 /**
- * Add entry to the list of the files that will be compressed
- * later.
+ * Add entry to the list of the files that will be compressed or
+ * deduplicated later.
  *
- * @param file File that should be compressed later
+ * @param file File that should be compressed/deduped later
+ * @param dedup Set to make a deduplication entry.
  */
-void background_compress(file_t *file)
+void background_compress_dedup(file_t *file, int dedup)
 {
 	compress_t *entry;
 
@@ -52,9 +55,8 @@ void background_compress(file_t *file)
 
 	DEBUG_("add '%s' to compress queue", file->filename);
 
-	// Compressor for this entry must not be set
-	//
-	assert(!file->compressor);
+	/* For compression entries, compressor must not be set. */
+	assert(dedup || !file->compressor);
 
 	// Increase accesses by 1, so entry is not flushed from the database.
 	//
@@ -67,6 +69,7 @@ void background_compress(file_t *file)
 		return;
 	}
 	entry->file = file;
+	entry->is_dedup = dedup;
 
 	// Add us to the database
 	//
@@ -77,13 +80,21 @@ void background_compress(file_t *file)
 	UNLOCK(&comp_database.lock);
 }
 
+void background_compress(file_t *file)
+{
+	background_compress_dedup(file, 0);
+}
+
+void background_dedup(file_t *file)
+{
+	background_compress_dedup(file, 1);
+}
+
 void *thread_compress(void *arg)
 {
 	file_t     *file;
 	compress_t *entry;
-
-	// pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, NULL);
-
+	
 	while (TRUE)
 	{
 		// Lock compressor database and check for new entries
@@ -117,28 +128,40 @@ void *thread_compress(void *arg)
 		UNLOCK(&comp_database.lock);
 
 		// This is safe, entry cannot be freed because entry->accesses++ in
-		// background_compress
+		// background_compress_dedup()
 		//
 		LOCK(&file->lock);
 
 		// entry->accesses must be > 0 because it was added
-		// by background_compress
+		// by background_compress_dedup()
 		//
 		assert(file->accesses > 0);
 
-		// If entry->accesses = 1 we're the only one accessing it, also only
-		// try to compress files that hasn't been deleted
-		// and hasn't been compressed
-		//
-		if ((file->accesses == 1) && (!file->deleted) && (!file->compressor) &&
-		    (dont_compress_beyond == -1 || file->size < dont_compress_beyond) )
-		{
-			DEBUG_("compressing '%s'", file->filename);
-			do_compress(file);
+		if (!entry->is_dedup) {
+		        /* compression entry */
+		        
+			// If entry->accesses = 1 we're the only one accessing it, also only
+			// try to compress files that hasn't been deleted
+			// and hasn't been compressed
+			//
+			if ((file->accesses == 1) && (!file->deleted) && (!file->compressor) &&
+			    (dont_compress_beyond == -1 || file->size < dont_compress_beyond) )
+			{
+				DEBUG_("compressing '%s'", file->filename);
+				do_compress(file);
+			}
+		}
+		else {
+		        /* deduplication entry */
+			if (file->accesses == 1 && !file->deleted) {
+				DEBUG_("deduping '%s'", file->filename);
+				do_dedup(file);
+				file->deduped = TRUE;
+			}
 		}
 
 		// Restore entry->accesses to original value
-		// (@see background_compress())
+		// (@see background_compress_dedup())
 		//
 		file->accesses--;
 
