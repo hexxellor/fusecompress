@@ -13,6 +13,7 @@
 #include <lzo/lzo1x.h>
 #include "lzo.h"
 #include "../utils.h"
+#include "../globals.h"
 
 // #include "../log.h"
 #define ERR_(...)
@@ -201,6 +202,13 @@ static int lzowriteblock(int fd, lzoBlock *block)
 	// of `lzo_align_t' (instead of `char') to make sure it is properly aligned.
 	//
 	HEAP_ALLOC(wrkmem, LZO1X_1_MEM_COMPRESS);
+
+	/* LZO does not initialize its memory and is thus not deterministic,
+	   leading to situations where identical data looks different in
+	   compressed form, which sabotages deduplication; to prevent this,
+	   we initialize the memory here if dedup is enabled */
+	if (dedup_enabled)
+		memset(wrkmem, 0, LZO1X_1_MEM_COMPRESS);
 
 	int      r;
 	lzo_uint out_len;

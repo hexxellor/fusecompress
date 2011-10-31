@@ -4,6 +4,8 @@
     (C) 2011 Ulrich Hecht <uli@suse.de>
 */
 
+#include "structs.h"
+
 extern int min_filesize_background;
 extern int root_fs;
 extern int read_only;
