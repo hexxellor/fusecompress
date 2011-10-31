@@ -1089,7 +1089,7 @@ int main(int argc, char *argv[])
 #ifndef CONFIG_OSX
 			 "nonempty,"
 #endif
-			 "kernel_cache,default_permissions,use_ino";
+			 "kernel_cache,default_permissions";
 
 	if (geteuid() == 0)
 	{
@@ -1266,6 +1266,11 @@ int main(int argc, char *argv[])
 
 	if(!detach) fusev[fusec++] = "-f";
 
+	if (!dedup_enabled) {
+		fusev[fusec++] = "-o";
+		fusev[fusec++] = "use_ino";
+	}
+	
 	if (!mountpoint) {
 #ifdef CONFIG_OSX
 		/* mounting over the backing directory hangs on OSX */
