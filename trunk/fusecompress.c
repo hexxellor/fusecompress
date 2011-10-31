@@ -882,14 +882,6 @@ static void *fusecompress_init(struct fuse_conn_info* conn)
 	DEBUG_("min_filesize_background: %d",
 		min_filesize_background);
 
-	// Lower priority of fusecompress. This allows good interactivity for
-	// others and still keeps good data throughput.
-	//
-	if (setpriority(PRIO_PGRP, 0, +10) == -1)
-	{
-		ERR_("setpriority failed");
-	}
-
 	pthread_create(&pt_comp, NULL, thread_compress, NULL);
 
 	return NULL;
