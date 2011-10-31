@@ -51,6 +51,7 @@
 #include "direct_compress.h"
 #include "background_compress.h"
 #include "compress_lzo.h"
+#include "dedup.h"
 
 static char DOT = '.';
 static int cmpdirFd;	// Open fd to cmpdir for fchdir.
@@ -295,6 +296,11 @@ static int fusecompress_unlink(const char *path)
 
 	file = direct_open(full, TRUE);
 
+	/* file is no longer available, make sure we don't use it
+	   as a link target */
+	if (dedup_enabled)
+		dedup_discard(file);
+	
 	if (unlink(full) == 0)
 	{
 		// Mark file as deleted
@@ -350,6 +356,12 @@ static int fusecompress_rename(const char *from, const char *to)
 	file_from->accesses--;
 	file_to->accesses--;
 
+	/* file_from is no longer available, make sure we don't use
+	   it as a link target */
+	/* XXX: maybe renaming in the dedup DB would be faster? */
+	if (dedup_enabled)
+		dedup_discard(file_from);
+	
 	if (rename(full_from, full_to) == 0)
 	{
 		// Rename file_from to full_to
@@ -543,7 +555,14 @@ static int fusecompress_open(const char *path, struct fuse_file_info *fi)
 		//
 		fi->flags &= ~O_APPEND;
 	}
-
+	
+	if (dedup_enabled && (fi->flags & (O_RDWR | O_CREAT | O_TRUNC))) {
+		if (do_undedup(file) == FAIL) {
+			UNLOCK(&file->lock);
+			return -EIO;
+		}
+	}
+	
 	descriptor->fd = file_open(full, fi->flags);
 	if (descriptor->fd == FAIL)
 	{
@@ -1075,6 +1094,7 @@ int main(int argc, char *argv[])
 	decomp_cache_size = 0;
 	max_decomp_cache_size = 100 * 1024 * 1024;
 	dont_compress_beyond = -1;
+	dedup_enabled = FALSE;
 	int no_opt_args = 0;	/* counter for non-option args */
 	
 	do {
@@ -1163,6 +1183,9 @@ int main(int argc, char *argv[])
 						DEBUG_("don't compress %s", user_incompressible[nccount]);
 						user_incompressible[nccount + 1] = NULL;
 						nccount++;
+					}
+					else if (!strcmp(o, "dedup")) {
+						dedup_enabled = TRUE;
 					}
 					else
 					{

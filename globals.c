@@ -1,7 +1,7 @@
 /*
     FuseCompress
     Copyright (C) 2005 Milan Svoboda <milan.svoboda@centrum.cz>
-    (C) 2009 Ulrich Hecht <uli@suse.de>
+    (C) 2009, 2011 Ulrich Hecht <uli@suse.de>
 */
 
 #include "config.h"
@@ -24,6 +24,8 @@ int read_only;	/* set if mounted read-only to avoid temporary decompression of f
 int cache_decompressed_data;
 int decomp_cache_size;
 int max_decomp_cache_size;
+
+int dedup_enabled;
 
 compressor_t *compressor_default = NULL;
 
@@ -82,6 +84,13 @@ database_t database = {
 
 database_t comp_database = {
 	.head = LIST_HEAD_INIT(comp_database.head),
+	.lock = PTHREAD_MUTEX_INITIALIZER,
+	.cond = PTHREAD_COND_INITIALIZER,		// When new item is added to the list
+	.entries = 0,
+};
+
+database_t dedup_database = {
+	.head = LIST_HEAD_INIT(dedup_database.head),
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.cond = PTHREAD_COND_INITIALIZER,		// When new item is added to the list
 	.entries = 0,

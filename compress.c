@@ -2,6 +2,7 @@
  *
  * Copyright (C) 2005 Milan Svoboda <milan.svoboda@centrum.cz>
  * Copyright (C) 2006 Milan Svoboda <milan.svoboda@centrum.cz>
+ * Copyright (C) 2011 Ulrich Hecht <uli@suse.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -37,6 +38,7 @@
 #include "log.h"
 #include "file.h"
 #include "direct_compress.h"
+#include "dedup.h"
 
 int compress_testcancel(void *cancel_cookie)
 {
@@ -464,6 +466,11 @@ void do_compress(file_t *file)
 	file->compressor = compressor;
 	file->size = filesize;
 
+	/* no longer present in uncompressed form, so we need to make
+	   sure it is removed from the deduplication database */
+	if (dedup_enabled)
+		dedup_discard(file);
+	
 	// Access and modification time can be only changed
 	// after the descriptor is closed.
 	//
