@@ -7,7 +7,7 @@ endif
 
 bin_PROGRAMS = fusecompress fusecompress_offline fsck.fusecompress
 
-common_sources = compress_null.c globals.c file.c
+common_sources = compress_null.c globals.c file.c log.c
 if HAVE_ZLIB
 common_sources += compress_gz.c
 endif
@@ -30,7 +30,7 @@ common_sources += dedup.c
 AM_CPPFLAGS += -DWITH_DEDUP
 endif
 
-fusecompress_SOURCES = $(common_sources) background_compress.c fusecompress.c compress.c direct_compress.c log.c
+fusecompress_SOURCES = $(common_sources) background_compress.c fusecompress.c compress.c direct_compress.c
 fusecompress_offline_SOURCES = $(common_sources) tools/offline.c
 fsck_fusecompress_SOURCES = $(common_sources) tools/fsck.c
 

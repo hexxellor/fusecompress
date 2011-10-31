@@ -81,8 +81,11 @@ extern int _debug_on;
 #define STAT_DIRECT_WRITE		14
 #define STAT_FALLBACK			15
 #define STAT_COMPRESS			16
+#define STAT_DO_DEDUP			17
+#define STAT_DO_UNDEDUP			18
+#define STAT_DEDUP_DISCARD		19
 
-#define STAT_MAX			16
+#define STAT_MAX			19
 
 #define STAT_(index)	statistics[index-1].count++;
 
