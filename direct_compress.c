@@ -123,7 +123,7 @@ void _direct_open_purge(int force)
 			    !read_only &&
 			    choose_compressor(file))
 			{
-				DEBUG_("compress file on background");
+				DEBUG_("compress file in background");
 				background_compress(file);
 			}
 			else

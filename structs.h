@@ -2,6 +2,7 @@
  *
  * FuseCompress
  * Copyright (C) 2005 Milan Svoboda <milan.svoboda@centrum.cz>
+ * (C) 2011 Ulrich Hecht <uli@suse.de>
  *
  */
 #ifndef STRUCTS_H
@@ -17,6 +18,7 @@
 #define FAIL -1
 
 #ifdef DEBUG
+#include <assert.h>
 # define LOCK(lock) assert(pthread_mutex_lock(lock) == 0)
 # define LOCK_RD(lock) assert(pthread_rwlock_rdlock(lock) == 0)
 # define LOCK_WR(lock) assert(pthread_rwlock_wrlock(lock) == 0)

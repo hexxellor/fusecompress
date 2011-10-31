@@ -1,7 +1,7 @@
 /*
     FuseCompress
     Copyright (C) 2005 Milan Svoboda <milan.svoboda@centrum.cz>
-    Copyright (C) 2008 Ulrich Hecht <uli@suse.de>
+    Copyright (C) 2008, 2011 Ulrich Hecht <uli@suse.de>
 
     This program can be distributed under the terms of the GNU GPL v2.
     See the file COPYING.
@@ -197,7 +197,7 @@ static int fusecompress_mknod(const char *path, mode_t mode, dev_t rdev)
 	
 	full = fusecompress_getpath(path);
 
-	DEBUG_("('%s') mode 0%o rdev 0x%x", full,mode,rdev);
+	DEBUG_("('%s') mode 0%o rdev 0x%x", full, mode, (unsigned int)rdev);
 
 	file = direct_open(full, TRUE);
 
