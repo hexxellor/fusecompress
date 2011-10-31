@@ -1395,7 +1395,13 @@ trysomethingelse:
 			WARN_("unable to set SIGTERM handler, will terminate on SIGTERM");
 	}
 	
+	if (dedup_enabled)
+		dedup_load(root);
+	
 	ret = fuse_main(fusec, fusev, &fusecompress_oper, NULL);
+	
+	if (dedup_enabled)
+		dedup_save();
 	
 	if (fs_opts) free(fs_opts);
 	if (user_incompressible) {
