@@ -37,6 +37,9 @@ volatile statistic_t statistics[STAT_MAX + 2] = {
 	{ 0, "direct write", },
 	{ 0, "fallback", },
 	{ 0, "compress", },
+	{ 0, "do dedup", },
+	{ 0, "do undedup", },
+	{ 0, "dedup discard", },
 	{ 0, "", },
 	{ 0, "", },
 };

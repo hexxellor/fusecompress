@@ -36,7 +36,6 @@
 void hardlink_file(unsigned char *md5, const char *filename)
 {
   DEBUG_("looking for '%s' in md5 database", filename);
-
   /* search for entry with matching MD5 hash */
   LOCK(&dedup_database.lock);
   dedup_t* dp;
@@ -104,6 +103,7 @@ void hardlink_file(unsigned char *md5, const char *filename)
 void do_dedup(file_t *file)
 {
   NEED_LOCK(&file->lock);
+  STAT_(STAT_DO_DEDUP);
   
   file->status |= DEDUPING;
   /* No need to keep the file under lock while calculating the hash; should
@@ -171,6 +171,8 @@ int do_undedup(file_t *file)
     return 0;
   if (st.st_nlink < 2)
     return 0;
+  
+  STAT_(STAT_DO_UNDEDUP);
   
   /* Check if we have enough space on the backing store to undedup. */
   struct statvfs stat;
@@ -272,6 +274,7 @@ void dedup_discard(file_t *file)
 {
   NEED_LOCK(&file->lock);
   DEBUG_("dedup_discard file '%s'", file->filename);
+  STAT_(STAT_DEDUP_DISCARD);
   dedup_t* dp;
   int len;
   unsigned int hash = gethash(file->filename, &len);
