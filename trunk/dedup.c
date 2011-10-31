@@ -289,3 +289,123 @@ void dedup_discard(file_t *file)
     }
   }
 }
+
+#define DEDUP_DB_FILE "._.fusecompress_dedup_db"
+#define DEDUP_MAGIC "DEDUP"
+#define DEDUP_MAGIC_SIZE (sizeof(DEDUP_MAGIC) - 1)
+#define DEDUP_VERSION 1
+
+/** Load the dedup DB saved when last mounted.
+ * @param root Path to the backing filesystem's root.
+ */
+void dedup_load(const char *root)
+{
+  dedup_t *dp;
+
+  /* we're not in the backing FS root yet, so we need to compose an
+     absolute path */
+  char fn[strlen(root) + 1 + strlen(DEDUP_DB_FILE) + 1];
+  sprintf(fn, "%s/%s", root, DEDUP_DB_FILE);
+  FILE *db_fp = fopen(fn, "r");
+  if (!db_fp) {
+    ERR_("failed to open dedup DB for reading: %s", strerror(errno));
+    return;
+  }
+  
+  /* check header */
+  char header[DEDUP_MAGIC_SIZE];
+  uint16_t version;
+  if (fread(header, DEDUP_MAGIC_SIZE, 1, db_fp) != 1)
+    goto out;
+  if (memcmp(header, DEDUP_MAGIC, DEDUP_MAGIC_SIZE)) {
+    ERR_("dedup DB magic not found");
+    goto out;
+  }
+  if (fread(&version, 2, 1, db_fp) != 1)
+    goto out;
+  if (version != DEDUP_VERSION) {
+    DEBUG_("verion mismatch, ignoring dedup DB");
+    goto out;
+  }
+  
+  /* load data */
+  uint32_t filename_length;
+  /* every entry starts with the length of the filename */
+  while (fread(&filename_length, 4, 1, db_fp) == 1) {
+    /* allocate DB entry */
+    dp = (dedup_t *)malloc(sizeof(dedup_t));
+    /* allocate filename */
+    dp->filename = (char *)malloc(filename_length + 1);
+    /* read filename */
+    if (fread(dp->filename, 1, filename_length, db_fp) != filename_length) {
+      ERR_("failed to load filename of %d characters", filename_length);
+      free(dp->filename);
+      free(dp);
+      goto out;
+    }
+    dp->filename[filename_length] = 0;	/* string termination */
+    /* read MD5 hash */
+    if (fread(dp->md5, 16, 1, db_fp) != 1) {
+      ERR_("failed to load MD5 for %s", dp->filename);
+      free(dp->filename);
+      free(dp);
+      goto out;
+    }
+    int len;
+    dp->filename_hash = gethash(dp->filename, &len);
+
+    /* add to in-core dedup DB */
+    list_add_tail(&dp->list, &dedup_database.head);
+    dedup_database.entries++;
+  }
+  
+  fclose(db_fp);
+  return;
+out:
+  fclose(db_fp);
+  unlink(fn); /* it's broken */
+  ERR_("failed to load dedup DB");
+}
+
+/** Save the current dedup DB.
+ */
+void dedup_save(void)
+{
+  dedup_t *dp;
+  /* assuming that cwd is the backing filesystem's root */
+  FILE* db_fp = fopen(DEDUP_DB_FILE, "w");
+  if (!db_fp) {
+    ERR_("failed to open dedup DB for writing");
+    return;
+  }
+
+  /* write header */
+  if (fwrite("DEDUP", DEDUP_MAGIC_SIZE, 1, db_fp) == EOF)
+    goto out;
+  uint16_t version = DEDUP_VERSION;
+  if (fwrite(&version, 1, 2, db_fp) == EOF)
+    goto out;
+  
+  /* write data */
+  list_for_each_entry(dp, &dedup_database.head, list) {
+    /* length of filename */
+    uint32_t len = strlen(dp->filename);
+    if (fwrite(&len, 1, 4, db_fp) == EOF)
+      goto out;
+    /* filename */
+    if (fputs(dp->filename, db_fp) == EOF)
+      goto out;
+    /* MD 5 hash */
+    if (fwrite(dp->md5, 1, 16, db_fp) == EOF)
+      goto out;
+    /* no need to save filename hash, it can be easily regenerated
+       when loading */
+  }
+
+  fclose(db_fp);
+  return;
+out:
+  fclose(db_fp);
+  unlink(DEDUP_DB_FILE);
+  ERR_("failed to write dedup DB");
+}
