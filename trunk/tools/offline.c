@@ -179,7 +179,8 @@ void usage(char *n)
 {
 	fprintf(stderr, "Usage: %s [OPTIONS] [path...]\n\n", n);
 	fprintf(stderr, " -c lzo/gz/bz2/lzma/null\tCompress file using the given method\n");
-	fprintf(stderr, " -l LEVEL\t\tSpecifies compression level\n");
+	fprintf(stderr, " -l LEVEL\t\t\tSpecifies compression level\n");
+	fprintf(stderr, " -v\t\t\t\tReport progress\n");
 	exit(1);
 }
 
