@@ -153,6 +153,9 @@ void *thread_compress(void *arg)
 				do_compress(file);
 			}
 #ifdef WITH_DEDUP
+                        if (dedup_enabled)
+                                dedup_discard(file);
+                        file->deduped = FALSE;
 		}
 		else {
 		        /* deduplication entry */

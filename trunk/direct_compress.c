@@ -205,7 +205,8 @@ file_t* direct_new_file(unsigned int filename_hash, const char *filename, int le
 	file->accesses = 0;
 	file->size = (off_t) -1;	// -1 means unknown file size
 	file->deleted = FALSE;
-	file->deduped = FALSE;
+	/* assume that a file has been deduped until it's modified */
+	file->deduped = TRUE;
 	file->compressor = NULL;
 	file->type = 0;
 	file->dontcompress = FALSE;
