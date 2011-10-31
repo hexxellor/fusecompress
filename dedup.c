@@ -31,11 +31,13 @@
 void hardlink_file(unsigned char *md5, const char *filename)
 {
   DEBUG_("looking for '%s' in md5 database", filename);
+  LOCK(&dedup_database.lock);
   dedup_t* dp;
   list_for_each_entry(dp, &dedup_database.head, list) {
     if (memcmp(md5, dp->md5, 16) == 0) {
       if(strcmp(filename, dp->filename) == 0) {
         DEBUG_("second run for '%s', ignoring", filename);
+        UNLOCK(&dedup_database.lock);
         return;
       }
       DEBUG_("duping it up with the '%s' man", dp->filename);
@@ -44,6 +46,7 @@ void hardlink_file(unsigned char *md5, const char *filename)
       if (rename(filename, tmpname)) {
         DEBUG_("renaming '%s' to '%s' failed", filename, tmpname);
         free(tmpname);
+        UNLOCK(&dedup_database.lock);
         return;
       }
       if (link(dp->filename, filename)) {
@@ -58,6 +61,7 @@ void hardlink_file(unsigned char *md5, const char *filename)
         }
       }
       free(tmpname);
+      UNLOCK(&dedup_database.lock);
       return;
     }
   }
@@ -67,7 +71,6 @@ void hardlink_file(unsigned char *md5, const char *filename)
   dp->filename = strdup(filename);
   int len;
   dp->filename_hash = gethash(filename, &len);
-  LOCK(&dedup_database.lock);
   list_add_tail(&dp->list, &dedup_database.head);
   dedup_database.entries++;
   UNLOCK(&dedup_database.lock);
@@ -75,6 +78,8 @@ void hardlink_file(unsigned char *md5, const char *filename)
 
 void do_dedup(file_t *file)
 {
+  NEED_LOCK(&file->lock);
+  
   file->status |= DEDUPING;
   UNLOCK(&file->lock);
   MHASH mh = mhash_init(MHASH_MD5);
@@ -118,6 +123,7 @@ void do_dedup(file_t *file)
 
 int do_undedup(file_t *file)
 {
+  NEED_LOCK(&file->lock);
   DEBUG_("undeduping '%s'", file->filename);
   struct stat st;
   if (stat(file->filename, &st) < 0)
