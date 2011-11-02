@@ -177,6 +177,10 @@ static int fusecompress_readdir(const char *path, void *buf, fuse_fill_dir_t fil
 		/* ignore FUSE temporary files */
 		if (strstr(de->d_name, FUSE))
 			continue;
+		
+		/* ignore dedup DB */
+		if (!strcmp(de->d_name, DEDUP_DB_FILE))
+			continue;
 
 		memset(&st, 0, sizeof(st));
 		st.st_ino = de->d_ino;
