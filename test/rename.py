@@ -35,7 +35,8 @@ def out_ok():
     except: pass
   sys.exit(0)
 
-def out_barf():
+def out_barf(e):
+  print 'Exception:',e
   os.abort()
     
 Timer(30,out_ok).start()
@@ -62,5 +63,5 @@ try:
       if len(b.read()) != size: out_barf()
       b.close()
     count += 1
-except OSError:
-  out_barf()
+except OSError, e:
+  out_barf(e)
