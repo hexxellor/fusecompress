@@ -303,7 +303,6 @@ void dedup_discard(file_t *file)
   }
 }
 
-#define DEDUP_DB_FILE "._.fusecompress_dedup_db"
 #define DEDUP_MAGIC "DEDUP"
 #define DEDUP_MAGIC_SIZE (sizeof(DEDUP_MAGIC) - 1)
 #define DEDUP_VERSION 1
