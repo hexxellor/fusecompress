@@ -91,8 +91,7 @@ database_t comp_database = {
 };
 
 #ifdef WITH_DEDUP
-database_t dedup_database = {
-	.head = LIST_HEAD_INIT(dedup_database.head),
+database_hash_t dedup_database = {
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.cond = PTHREAD_COND_INITIALIZER,		// When new item is added to the list
 	.entries = 0,

@@ -148,7 +148,17 @@ typedef struct {
 	pthread_mutex_t lock;
 	pthread_cond_t cond;
 	int entries; 			/**< Number of entries in the database */
-	struct list_head head;		/**< Head of the file_t or compress_t */
+	struct list_head head;		/**< Head of the file_t, compress_t, or dedup_t */
 } database_t;
+
+#define DATABASE_HASH_SIZE 65536
+#define DATABASE_HASH_MASK 0xffff
+
+typedef struct {
+	pthread_mutex_t lock;
+	pthread_cond_t cond;
+	int entries; 			/**< Number of entries in the database */
+	struct list_head head[DATABASE_HASH_SIZE]; /**< Heads of the list. */
+} database_hash_t;
 
 #endif
