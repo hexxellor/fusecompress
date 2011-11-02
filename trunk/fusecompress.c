@@ -363,18 +363,13 @@ static int fusecompress_rename(const char *from, const char *to)
 	file_from->accesses--;
 	file_to->accesses--;
 
-#ifdef WITH_DEDUP
-	/* file_from is no longer available, make sure we don't use
-	   it as a link target */
-	/* XXX: maybe renaming in the dedup DB would be faster? */
-	if (dedup_enabled)
-		dedup_discard(file_from);
-#endif
-	
 	if (rename(full_from, full_to) == 0)
 	{
 		// Rename file_from to full_to
 		//
+#ifdef WITH_DEDUP
+		dedup_rename(file_from, file_to);
+#endif
 		file_to = direct_rename(file_from, file_to);
 	}
 	else
