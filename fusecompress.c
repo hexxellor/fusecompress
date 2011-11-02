@@ -1166,6 +1166,10 @@ int main(int argc, char *argv[])
 						max_decomp_cache_size = strtol(o + 11, NULL, 10) * 1024 * 1024;
 						DEBUG_("max_decomp_cache_size set to %d", max_decomp_cache_size);
 					}
+					else if (!strncmp(o, "level=", 6) && strlen(o) == 7) {
+						if(isdigit(o[6]) && o[6] >= '1' && o[6] <= '9')
+							compresslevel[2] = o[6];
+					}
 					else if (!strcmp(o, "detach"))
 					{
 						detach = 1;
