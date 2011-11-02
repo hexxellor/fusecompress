@@ -368,7 +368,8 @@ static int fusecompress_rename(const char *from, const char *to)
 		// Rename file_from to full_to
 		//
 #ifdef WITH_DEDUP
-		dedup_rename(file_from, file_to);
+		if (dedup_enabled)
+			dedup_rename(file_from, file_to);
 #endif
 		file_to = direct_rename(file_from, file_to);
 	}
