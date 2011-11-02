@@ -155,14 +155,12 @@ void *thread_compress(void *arg)
 #ifdef WITH_DEDUP
                         if (dedup_enabled)
                                 dedup_discard(file);
-                        file->deduped = FALSE;
 		}
 		else {
 		        /* deduplication entry */
 			if (file->accesses == 1 && !file->deleted) {
 				DEBUG_("deduping '%s'", file->filename);
 				do_dedup(file);
-				file->deduped = TRUE;
 			}
 		}
 #endif

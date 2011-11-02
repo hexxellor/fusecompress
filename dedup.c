@@ -151,6 +151,7 @@ void do_dedup(file_t *file)
            file->filename, md5[0], md5[1], md5[2], md5[3], md5[4], md5[5], md5[6], md5[7], md5[8],
            md5[9], md5[10], md5[11], md5[12], md5[13], md5[14], md5[15]);
     hardlink_file(md5, file->filename);
+    file->deduped = TRUE;
   }
   else {
     /* Acknowledge the cancellation. */
@@ -272,11 +273,19 @@ int do_undedup(file_t *file)
 }
 
 /** Remove an entry from the deduplication DB.
+ * This function must be called whenever a file's contents are modified.
  * @param file File to be removed.
  */
 void dedup_discard(file_t *file)
 {
   NEED_LOCK(&file->lock);
+
+  if (file->deduped == FALSE) {
+    /* This entry is not in the DB anyway. */
+    return;
+  }
+
+  file->deduped = FALSE;
   DEBUG_("dedup_discard file '%s'", file->filename);
   STAT_(STAT_DEDUP_DISCARD);
   dedup_t* dp;

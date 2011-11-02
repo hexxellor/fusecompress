@@ -450,7 +450,6 @@ static int fusecompress_truncate(const char *path, off_t size)
 #ifdef WITH_DEDUP
 	if (dedup_enabled)
 		dedup_discard(file);
-	file->deduped = FALSE;
 #endif
 	// And finally do the actual decompress (note, that we only decompress
 	// if size > 0, no need to run through that time consuming process
@@ -715,7 +714,6 @@ static int fusecompress_write(const char *path, const char *buf, size_t size,
 #ifdef WITH_DEDUP
 	if (dedup_enabled)
 		dedup_discard(file);
-	file->deduped = FALSE;
 #endif
 
 	DEBUG_("\tfile->filename: %s", file->filename);
