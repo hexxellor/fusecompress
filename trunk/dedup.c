@@ -308,7 +308,12 @@ void dedup_load(const char *root)
   sprintf(fn, "%s/%s", root, DEDUP_DB_FILE);
   FILE *db_fp = fopen(fn, "r");
   if (!db_fp) {
-    ERR_("failed to open dedup DB for reading: %s", strerror(errno));
+    if (errno == ENOENT) {
+      DEBUG_("no dedup DB found");
+    }
+    else {
+      ERR_("failed to open dedup DB for reading: %s", strerror(errno));
+    }
     return;
   }
   
