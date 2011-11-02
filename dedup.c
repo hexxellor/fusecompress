@@ -426,3 +426,41 @@ out:
   unlink(DEDUP_DB_FILE);
   ERR_("failed to write dedup DB");
 }
+
+/** Rename a file in the dedup database.
+ * @param from Original file.
+ * @param to Target file.
+ */
+void dedup_rename(file_t *from, file_t *to)
+{
+  /* propagate the dedup status to the new file */
+  NEED_LOCK(&to->lock);
+  DEBUG_("to->deduped %d, from->deduped %d", to->deduped, from->deduped);
+  to->deduped = from->deduped;
+
+  /* search for from file in the dedup DB and remove it from there */
+  dedup_t *dp;
+  int found = 0;
+  DEBUG_("dedup renaming '%s'/%08x to '%s'/%08x", from->filename, from->filename_hash, to->filename, to->filename_hash);
+  LOCK(&dedup_database.lock);
+  list_for_each_entry(dp, &dedup_database.head[from->filename_hash & DATABASE_HASH_MASK], list) {
+    if (dp->filename_hash == from->filename_hash && !strcmp(dp->filename, from->filename)) {
+      DEBUG_("found file '%s' to rename", from->filename);
+      list_del(&dp->list);
+      found = 1;
+      break;
+    }
+  }
+
+  /* it's quite possible that an entry is not in the dedup DB yet, it
+     may not have been released yet */
+  if (found) {
+    /* new filename */
+    free(dp->filename);
+    dp->filename = strdup(to->filename);
+    dp->filename_hash = to->filename_hash;
+    /* add to DB again */
+    list_add_tail(&dp->list, &dedup_database.head[dp->filename_hash & DATABASE_HASH_MASK]);
+  }
+  UNLOCK(&dedup_database.lock);
+}
