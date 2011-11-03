@@ -942,6 +942,7 @@ static void fusecompress_destroy(void *arg)
 
 	DEBUG_("Canceling pt_comp");
 	pthread_cancel(pt_comp);
+	pthread_cond_signal(&comp_database.cond);
 	pthread_join(pt_comp, NULL);
 	DEBUG_("All threads stopped!");
 

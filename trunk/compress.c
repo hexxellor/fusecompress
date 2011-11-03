@@ -62,17 +62,13 @@ compressor_t *choose_compressor(const file_t *file)
 	char **ext;
 
 	/* don't compress already compressed file formats */
-	char* r = rindex(file->filename, '.');
-	if (r) {
-		r++;
-		for (ext = incompressible; *ext != NULL; ext++)
-			if (!strcmp(r, *ext))
-				return NULL;
-		if (user_incompressible)
-			for (ext = user_incompressible; *ext != NULL; ext++)
-				if (!strcmp(r, *ext))
-					return NULL;
-	}
+        for (ext = incompressible; *ext != NULL; ext++)
+                if (strstr(file->filename, *ext))
+                        return NULL;
+        if (user_incompressible)
+                for (ext = user_incompressible; *ext != NULL; ext++)
+                        if (strstr(file->filename, *ext))
+                                return NULL;
 
 	/* ignore our temporary files */
 	if (strstr(file->filename, TEMP))
@@ -91,6 +87,7 @@ compressor_t *choose_compressor(const file_t *file)
 			if (strncmp(file->filename, *ext, strlen(*ext)) == 0)
 				return NULL;
 		}
+		char *r;
 		if ((r = rindex(file->filename, '.')))
 		{
 			if (!strcmp(r, ".so")) /* name ends with .so */
