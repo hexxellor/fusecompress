@@ -135,7 +135,8 @@ typedef struct {
  * Deduplication database entry.
  */
 typedef struct {
-        struct list_head list;
+        struct list_head list_filename_hash;
+        struct list_head list_md5;
         char *filename;
         unsigned int filename_hash;
         unsigned char md5[16];	/**< MD5 hash over the on-disk data */
@@ -153,12 +154,19 @@ typedef struct {
 
 #define DATABASE_HASH_SIZE 65536
 #define DATABASE_HASH_MASK 0xffff
+#define DATABASE_HASH_QUEUE_T uint16_t
 
+/** Deduplication hash table.
+ * Files are hashed by their MD5 sum and their fusecompress filename hash,
+ * allowing fast lookup by both content (for deduplication) and name (for 
+ * deduplicated file modification).
+ */
 typedef struct {
 	pthread_mutex_t lock;
 	pthread_cond_t cond;
 	int entries; 			/**< Number of entries in the database */
-	struct list_head head[DATABASE_HASH_SIZE]; /**< Heads of the list. */
-} database_hash_t;
+	struct list_head head_filename[DATABASE_HASH_SIZE]; /**< Heads of the filename hash lists. */
+	struct list_head head_md5[DATABASE_HASH_SIZE]; /**< Heads of the MD5 hash lists. */
+} dedup_hash_t;
 
 #endif

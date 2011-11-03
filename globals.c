@@ -91,7 +91,8 @@ database_t comp_database = {
 };
 
 #ifdef WITH_DEDUP
-database_hash_t dedup_database = {
+dedup_hash_t dedup_database = {
+        /* .head_filename[] and .head_md5[] cannot be initialized statically */
 	.lock = PTHREAD_MUTEX_INITIALIZER,
 	.cond = PTHREAD_COND_INITIALIZER,		// When new item is added to the list
 	.entries = 0,

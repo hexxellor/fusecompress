@@ -28,6 +28,11 @@
 #include <mhash.h>
 #include <fcntl.h>
 
+inline DATABASE_HASH_QUEUE_T md5_to_hash(unsigned char *md5)
+{
+  return *((DATABASE_HASH_QUEUE_T *)md5);
+}
+
 /** Hard-link filename to a file from the dedup database with the same MD5
  * hash.
  * @param md5 file content's 128-bit MD5 hash
@@ -40,51 +45,48 @@ void hardlink_file(unsigned char *md5, const char *filename)
   LOCK(&dedup_database.lock);
   dedup_t* dp;
 
-  int i;
-  for (i = 0; i < DATABASE_HASH_SIZE; i++) {
-    list_for_each_entry(dp, &dedup_database.head[i], list) {
-      if (memcmp(md5, dp->md5, 16) == 0) {
-        /* Check if this entry points to the file itself. */
-        /* XXX: This is something that should not actually happen, although
-           should at worst be a performance problem. */
-        if(strcmp(filename, dp->filename) == 0) {
-          DEBUG_("second run for '%s', ignoring", filename);
-          UNLOCK(&dedup_database.lock);
-          return;
-        }
+  list_for_each_entry(dp, &dedup_database.head_md5[md5_to_hash(md5)], list_md5) {
+    if (memcmp(md5, dp->md5, 16) == 0) {
+      /* Check if this entry points to the file itself. */
+      /* XXX: This is something that should not actually happen, although
+         should at worst be a performance problem. */
+      if(strcmp(filename, dp->filename) == 0) {
+        DEBUG_("second run for '%s', ignoring", filename);
+        UNLOCK(&dedup_database.lock);
+        return;
+      }
 
-        DEBUG_("duping it up with the '%s' man", dp->filename);
+      DEBUG_("duping it up with the '%s' man", dp->filename);
 
-        /* We cannot just unlink the duplicate file because some filesystems
-           (Btrfs, NTFS) have severe limits on the number of hardlinks per
-           directory or per inode; we therefore rename it first and only delete
-           it once the link has actually been created. */
-        char *tmpname = malloc(strlen(filename) + 12);
-        sprintf(tmpname, "%s.%d", filename, getpid());
-        if (rename(filename, tmpname)) {
-          DEBUG_("renaming '%s' to '%s' failed", filename, tmpname);
-          free(tmpname);
-          UNLOCK(&dedup_database.lock);
-          return;
-        }
-
-        /* Try to create the link. */
-        if (link(dp->filename, filename)) {
-          DEBUG_("creating hardlink from '%s' to '%s' failed", dp->filename, filename);
-          if (rename(tmpname, filename)) {
-            ERR_("failed to move original file back");
-          }
-        }
-        else {
-          /* Made it, now we can actually unlink the duplicate. */
-          if (unlink(tmpname)) {
-            ERR_("failed to unlink original file at '%s'", tmpname);
-          }
-        }
+      /* We cannot just unlink the duplicate file because some filesystems
+         (Btrfs, NTFS) have severe limits on the number of hardlinks per
+         directory or per inode; we therefore rename it first and only delete
+         it once the link has actually been created. */
+      char *tmpname = malloc(strlen(filename) + 12);
+      sprintf(tmpname, "%s.%d", filename, getpid());
+      if (rename(filename, tmpname)) {
+        DEBUG_("renaming '%s' to '%s' failed", filename, tmpname);
         free(tmpname);
         UNLOCK(&dedup_database.lock);
         return;
       }
+
+      /* Try to create the link. */
+      if (link(dp->filename, filename)) {
+        DEBUG_("creating hardlink from '%s' to '%s' failed", dp->filename, filename);
+        if (rename(tmpname, filename)) {
+          ERR_("failed to move original file back");
+        }
+      }
+      else {
+        /* Made it, now we can actually unlink the duplicate. */
+        if (unlink(tmpname)) {
+          ERR_("failed to unlink original file at '%s'", tmpname);
+        }
+      }
+      free(tmpname);
+      UNLOCK(&dedup_database.lock);
+      return;
     }
   }
   
@@ -96,7 +98,8 @@ void hardlink_file(unsigned char *md5, const char *filename)
   dp->filename = strdup(filename);
   int len;
   dp->filename_hash = gethash(filename, &len);
-  list_add_tail(&dp->list, &dedup_database.head[dp->filename_hash & DATABASE_HASH_MASK]);
+  list_add_tail(&dp->list_filename_hash, &dedup_database.head_filename[dp->filename_hash & DATABASE_HASH_MASK]);
+  list_add_tail(&dp->list_md5, &dedup_database.head_md5[md5_to_hash(md5)]);
   dedup_database.entries++;
   UNLOCK(&dedup_database.lock);
 }
@@ -291,10 +294,11 @@ void dedup_discard(file_t *file)
   dedup_t* dp;
   int len;
   unsigned int hash = gethash(file->filename, &len);
-  list_for_each_entry(dp, &dedup_database.head[hash & DATABASE_HASH_MASK], list) {
+  list_for_each_entry(dp, &dedup_database.head_filename[hash & DATABASE_HASH_MASK], list_filename_hash) {
     if (dp->filename_hash == hash && !strcmp(dp->filename, file->filename)) {
       DEBUG_("found file '%s', discarding", file->filename);
-      list_del(&dp->list);
+      list_del(&dp->list_filename_hash);
+      list_del(&dp->list_md5);
       dedup_database.entries--;
       free(dp->filename);
       free(dp);
@@ -314,7 +318,8 @@ void dedup_load(const char *root)
 {
   int i;
   for (i = 0; i < DATABASE_HASH_SIZE; i++) {
-    dedup_database.head[i].prev = dedup_database.head[i].next = &(dedup_database.head[i]);
+    dedup_database.head_filename[i].prev = dedup_database.head_filename[i].next = &(dedup_database.head_filename[i]);
+    dedup_database.head_md5[i].prev = dedup_database.head_md5[i].next = &(dedup_database.head_md5[i]);
   }
 
   dedup_t *dp;
@@ -377,7 +382,8 @@ void dedup_load(const char *root)
     dp->filename_hash = gethash(dp->filename, &len);
 
     /* add to in-core dedup DB */
-    list_add_tail(&dp->list, &dedup_database.head[dp->filename_hash & DATABASE_HASH_MASK]);
+    list_add_tail(&dp->list_filename_hash, &dedup_database.head_filename[dp->filename_hash & DATABASE_HASH_MASK]);
+    list_add_tail(&dp->list_md5, &dedup_database.head_md5[md5_to_hash(dp->md5)]);
     dedup_database.entries++;
   }
   
@@ -411,7 +417,7 @@ void dedup_save(void)
   /* write data */
   int i;
   for (i = 0; i < DATABASE_HASH_SIZE; i++) {
-    list_for_each_entry(dp, &dedup_database.head[i], list) {
+    list_for_each_entry(dp, &dedup_database.head_filename[i], list_filename_hash) {
       /* length of filename */
       uint32_t len = strlen(dp->filename);
       if (fwrite(&len, 1, 4, db_fp) == EOF)
@@ -451,10 +457,11 @@ void dedup_rename(file_t *from, file_t *to)
   int found = 0;
   DEBUG_("dedup renaming '%s'/%08x to '%s'/%08x", from->filename, from->filename_hash, to->filename, to->filename_hash);
   LOCK(&dedup_database.lock);
-  list_for_each_entry(dp, &dedup_database.head[from->filename_hash & DATABASE_HASH_MASK], list) {
+  list_for_each_entry(dp, &dedup_database.head_filename[from->filename_hash & DATABASE_HASH_MASK], list_filename_hash) {
     if (dp->filename_hash == from->filename_hash && !strcmp(dp->filename, from->filename)) {
       DEBUG_("found file '%s' to rename", from->filename);
-      list_del(&dp->list);
+      list_del(&dp->list_filename_hash);
+      list_del(&dp->list_md5);
       found = 1;
       break;
     }
@@ -468,7 +475,8 @@ void dedup_rename(file_t *from, file_t *to)
     dp->filename = strdup(to->filename);
     dp->filename_hash = to->filename_hash;
     /* add to DB again */
-    list_add_tail(&dp->list, &dedup_database.head[dp->filename_hash & DATABASE_HASH_MASK]);
+    list_add_tail(&dp->list_filename_hash, &dedup_database.head_filename[dp->filename_hash & DATABASE_HASH_MASK]);
+    list_add_tail(&dp->list_md5, &dedup_database.head_md5[md5_to_hash(dp->md5)]);
   }
   UNLOCK(&dedup_database.lock);
 }
