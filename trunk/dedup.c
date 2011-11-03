@@ -388,6 +388,9 @@ void dedup_load(const char *root)
   }
   
   fclose(db_fp);
+  /* Very soon, we will change this filesystem without updating the dedup DB,
+     and it would be dangerous to keep an out-of-date database on disk. */
+  unlink(fn);
   return;
 out:
   fclose(db_fp);
