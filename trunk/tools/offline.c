@@ -188,6 +188,8 @@ int main(int argc, char **argv)
 {
 	int next_option;
 
+	compresslevel[2] = 'x';
+
 	do
 	{
 		next_option = getopt(argc, argv, "c:l:v");
@@ -198,10 +200,12 @@ int main(int argc, char **argv)
 				if (!comp)
 					usage(argv[0]);
 
-				if (comp->type == 4)	/* LZMA */
-					compresslevel[2] = '4';
-				else
-					compresslevel[2] = '6';
+				if (compresslevel[2] == 'x') {
+					if (comp->type == 4)	/* LZMA */
+						compresslevel[2] = '4';
+					else
+						compresslevel[2] = '6';
+				}
 
 				break;
 			case 'l':
