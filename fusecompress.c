@@ -856,6 +856,9 @@ static void *fusecompress_init(struct fuse_conn_info* conn)
 
 	pthread_mutex_init(&database.lock, &locktype);
 	pthread_mutex_init(&comp_database.lock, &locktype);
+#ifdef WITH_DEDUP
+	pthread_mutex_init(&dedup_database.lock, &locktype);
+#endif
 
 	if (fchdir(cmpdirFd) == -1)
 	{

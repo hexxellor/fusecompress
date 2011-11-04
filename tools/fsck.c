@@ -214,10 +214,8 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	if (rebuild_dedup_db) {
 		unsigned char md5[16];
 		dedup_hash_file(fpath, md5);
-		LOCK(&dedup_database.lock);
 		if (!dedup_db_has(md5))
 			dedup_add(md5, fpath + 2);
-		UNLOCK(&dedup_database.lock);
 	}
 #endif
 

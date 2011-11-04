@@ -119,7 +119,6 @@ void hardlink_file(unsigned char *md5, const char *filename)
 int dedup_db_has(unsigned char *md5)
 {
   dedup_t *dp;
-  NEED_LOCK(&dedup_database.lock);
   list_for_each_entry(dp, &dedup_database.head_md5[md5_to_hash(md5)], list_md5) {
     if (memcmp(md5, dp->md5, 16) == 0) {
       return TRUE;
