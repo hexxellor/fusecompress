@@ -39,7 +39,6 @@ inline DATABASE_HASH_QUEUE_T md5_to_hash(unsigned char *md5)
  */
 void dedup_add(unsigned char *md5, const char *filename)
 {
-  NEED_LOCK(&dedup_database.lock);
   dedup_t *dp = (dedup_t *)malloc(sizeof(dedup_t));
   memcpy(dp->md5, md5, 16);
   dp->filename = strdup(filename);
