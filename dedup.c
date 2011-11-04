@@ -33,6 +33,23 @@ inline DATABASE_HASH_QUEUE_T md5_to_hash(unsigned char *md5)
   return *((DATABASE_HASH_QUEUE_T *)md5);
 }
 
+/** Add a filename/MD5 pair to the dedup database.
+ * @param md5 MD5 hash
+ * @param filename File name.
+ */
+void dedup_add(unsigned char *md5, const char *filename)
+{
+  NEED_LOCK(&dedup_database.lock);
+  dedup_t *dp = (dedup_t *)malloc(sizeof(dedup_t));
+  memcpy(dp->md5, md5, 16);
+  dp->filename = strdup(filename);
+  int len;
+  dp->filename_hash = gethash(filename, &len);
+  list_add_tail(&dp->list_filename_hash, &dedup_database.head_filename[dp->filename_hash & DATABASE_HASH_MASK]);
+  list_add_tail(&dp->list_md5, &dedup_database.head_md5[md5_to_hash(md5)]);
+  dedup_database.entries++;
+}
+
 /** Hard-link filename to a file from the dedup database with the same MD5
  * hash.
  * @param md5 file content's 128-bit MD5 hash
@@ -93,33 +110,35 @@ void hardlink_file(unsigned char *md5, const char *filename)
   /* If we reach this point, we haven't found any duplicate for this file,
      so we add it as a new entry into the dedup database. */
   DEBUG_("unique file '%s', adding to dedup DB", filename);
-  dp = (dedup_t *)malloc(sizeof(dedup_t));
-  memcpy(dp->md5, md5, 16);
-  dp->filename = strdup(filename);
-  int len;
-  dp->filename_hash = gethash(filename, &len);
-  list_add_tail(&dp->list_filename_hash, &dedup_database.head_filename[dp->filename_hash & DATABASE_HASH_MASK]);
-  list_add_tail(&dp->list_md5, &dedup_database.head_md5[md5_to_hash(md5)]);
-  dedup_database.entries++;
+  dedup_add(md5, filename);
   UNLOCK(&dedup_database.lock);
 }
 
-/** Attempt deduplication of file.
- * @param file File to be deduplicated.
+/** Checks if an entry matching the given MD5 hash is in the database.
+ * @param md5 MD5 hash.
  */
-void do_dedup(file_t *file)
+int dedup_db_has(unsigned char *md5)
 {
-  NEED_LOCK(&file->lock);
-  STAT_(STAT_DO_DEDUP);
-  
-  file->status |= DEDUPING;
-  /* No need to keep the file under lock while calculating the hash; should
-     it change in the meantime, we will be informed through file->status. */
-  UNLOCK(&file->lock);
-  
-  /* Calculate MD5 hash. */
+  dedup_t *dp;
+  NEED_LOCK(&dedup_database.lock);
+  list_for_each_entry(dp, &dedup_database.head_md5[md5_to_hash(md5)], list_md5) {
+    if (memcmp(md5, dp->md5, 16) == 0) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/** Calculate the MD5 hash of a given file.
+ * @param name File name to be hashed.
+ * @param md5 16-byte buffer the MD5 hash will be written to.
+ */
+int dedup_hash_file(const char *name, unsigned char *md5)
+{
   MHASH mh = mhash_init(MHASH_MD5);
-  int fd = open(file->filename, O_RDONLY);
+  int fd = open(name, O_RDONLY);
+  if (fd < 0)
+    return 1;
   int count;
   int failed = 0;
   char buf[4096];
@@ -136,9 +155,27 @@ void do_dedup(file_t *file)
     /* XXX: It would be good for performance to occasionally check
        file->status & CANCEL. */
   }
-  unsigned char md5[16];
   mhash_deinit(mh, md5);
   close(fd);
+  return failed;
+}
+
+/** Attempt deduplication of file.
+ * @param file File to be deduplicated.
+ */
+void do_dedup(file_t *file)
+{
+  NEED_LOCK(&file->lock);
+  STAT_(STAT_DO_DEDUP);
+  
+  file->status |= DEDUPING;
+  /* No need to keep the file under lock while calculating the hash; should
+     it change in the meantime, we will be informed through file->status. */
+  UNLOCK(&file->lock);
+  
+  /* Calculate MD5 hash. */
+  unsigned char md5[16];
+  int failed = dedup_hash_file(file->filename, md5);
   
   /* See if everything went fine. */
   LOCK(&file->lock);
@@ -311,17 +348,24 @@ void dedup_discard(file_t *file)
 #define DEDUP_MAGIC_SIZE (sizeof(DEDUP_MAGIC) - 1)
 #define DEDUP_VERSION 1
 
-/** Load the dedup DB saved when last mounted.
- * @param root Path to the backing filesystem's root.
+/** Initialize the deduplication database.
  */
-void dedup_load(const char *root)
+void dedup_init_db(void)
 {
   int i;
   for (i = 0; i < DATABASE_HASH_SIZE; i++) {
     dedup_database.head_filename[i].prev = dedup_database.head_filename[i].next = &(dedup_database.head_filename[i]);
     dedup_database.head_md5[i].prev = dedup_database.head_md5[i].next = &(dedup_database.head_md5[i]);
   }
+}
 
+/** Load the dedup DB saved when last mounted.
+ * @param root Path to the backing filesystem's root.
+ */
+void dedup_load(const char *root)
+{
+  dedup_init_db();
+  
   dedup_t *dp;
 
   /* we're not in the backing FS root yet, so we need to compose an
@@ -398,6 +442,33 @@ out:
   ERR_("failed to load dedup DB");
 }
 
+static int dedup_db_write_header(FILE *db_fp)
+{
+  if (fwrite("DEDUP", DEDUP_MAGIC_SIZE, 1, db_fp) == EOF)
+    return 1;
+  uint16_t version = DEDUP_VERSION;
+  if (fwrite(&version, 1, 2, db_fp) == EOF)
+    return 1;
+  return 0;
+}
+
+static int dedup_db_write_entry(FILE *db_fp, const char *filename, unsigned char *md5)
+{
+  /* length of filename */
+  uint32_t len = strlen(filename);
+  if (fwrite(&len, 1, 4, db_fp) == EOF)
+    return 1;
+  /* filename */
+  if (fputs(filename, db_fp) == EOF)
+    return 1;
+  /* MD 5 hash */
+  if (fwrite(md5, 1, 16, db_fp) == EOF)
+    return 1;
+  /* no need to save filename hash, it can be easily regenerated
+     when loading */
+  return 0;
+}
+
 /** Save the current dedup DB.
  */
 void dedup_save(void)
@@ -411,28 +482,15 @@ void dedup_save(void)
   }
 
   /* write header */
-  if (fwrite("DEDUP", DEDUP_MAGIC_SIZE, 1, db_fp) == EOF)
-    goto out;
-  uint16_t version = DEDUP_VERSION;
-  if (fwrite(&version, 1, 2, db_fp) == EOF)
+  if (dedup_db_write_header(db_fp))
     goto out;
   
   /* write data */
   int i;
   for (i = 0; i < DATABASE_HASH_SIZE; i++) {
     list_for_each_entry(dp, &dedup_database.head_filename[i], list_filename_hash) {
-      /* length of filename */
-      uint32_t len = strlen(dp->filename);
-      if (fwrite(&len, 1, 4, db_fp) == EOF)
+      if (dedup_db_write_entry(db_fp, dp->filename, dp->md5))
         goto out;
-      /* filename */
-      if (fputs(dp->filename, db_fp) == EOF)
-        goto out;
-      /* MD 5 hash */
-      if (fwrite(dp->md5, 1, 16, db_fp) == EOF)
-        goto out;
-      /* no need to save filename hash, it can be easily regenerated
-         when loading */
     }
   }
 
