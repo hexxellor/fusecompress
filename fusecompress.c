@@ -367,7 +367,32 @@ static int fusecompress_rename(const char *from, const char *to)
 	file_from->accesses--;
 	file_to->accesses--;
 
-	if (rename(full_from, full_to) == 0)
+	int renamed = FALSE;
+	if (dedup_enabled) {
+		/* Work around pants-on-head retarded rename() semantics:
+		   "If oldpath and newpath are existing hard links referring
+		   to the same file, then rename() does nothing, and returns
+		   a success status." */
+		struct stat st_from;
+		/* do we have a source file? */
+		if (lstat(full_from, &st_from) == 0) {
+			/* does it have more than one link? */
+			if (st_from.st_nlink > 1) {
+				/* do we have a destination file? */
+				struct stat st_to;
+				if (lstat(full_to, &st_to) == 0) {
+					/* are the files pointing to the same inode? */
+					if (st_from.st_ino == st_to.st_ino) {
+						/* unlink the source file instead of calling rename() */
+						if (unlink(full_from) == 0)
+							renamed = TRUE;
+					}
+				}
+			}
+		}
+	}
+	
+	if (renamed || rename(full_from, full_to) == 0)
 	{
 		// Rename file_from to full_to
 		//
