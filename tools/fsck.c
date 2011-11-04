@@ -14,6 +14,9 @@
 #include "../compress_gz.h"
 #include "../file.h"
 #include "../globals.h"
+#ifdef WITH_DEDUP
+#include "../dedup.h"
+#endif
 
 #include <ftw.h>
 #include <stdlib.h>
@@ -53,6 +56,10 @@ int fix_fixables = 0; /* repair files if possible */
 int errors_found = 0;
 int errors_fixed = 0;
 int warnings = 0;
+#ifdef WITH_DEDUP
+int rebuild_dedup_db = 0;
+FILE *dedup_db_fp;
+#endif
 
 /* remove file if unlink_enabled is true */
 void do_unlink(const char *fpath)
@@ -202,6 +209,17 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	}
 	else if (verbose)
 		fprintf(stderr, "uncompressed file, skipping\n");
+	
+#ifdef WITH_DEDUP
+	if (rebuild_dedup_db) {
+		unsigned char md5[16];
+		dedup_hash_file(fpath, md5);
+		LOCK(&dedup_database.lock);
+		if (!dedup_db_has(md5))
+			dedup_add(md5, fpath + 2);
+		UNLOCK(&dedup_database.lock);
+	}
+#endif
 
 	close(fd);
 	return 0;
@@ -212,6 +230,9 @@ void usage(char *n)
 	fprintf(stderr, "Usage: %s [-dv] directory\n\n", n);
 	fprintf(stderr, " -d\tRemove unfixable or superfluous broken files\n");
 	fprintf(stderr, " -p\tFix fixable files\n");
+#ifdef WITH_DEDUP
+	fprintf(stderr, " -r\tRebuild deduplication database\n");
+#endif
 	fprintf(stderr, " -v\tBe verbose\n");
 	exit(1);
 }
@@ -222,7 +243,11 @@ int main(int argc, char **argv)
 
 	do
 	{
-		next_option = getopt(argc, argv, "dpv");
+		next_option = getopt(argc, argv, "dpv"
+#ifdef WITH_DEDUP
+		"r"
+#endif
+		);
 		switch (next_option)
 		{
 			case 'd':
@@ -231,6 +256,11 @@ int main(int argc, char **argv)
 			case 'p':
 				fix_fixables = 1;
 				break;
+#ifdef WITH_DEDUP
+			case 'r':
+				rebuild_dedup_db = 1;
+				break;
+#endif
 			case 'v':
 				verbose = 1;
 				break;
@@ -245,11 +275,24 @@ int main(int argc, char **argv)
 	if (optind >= argc)
 		usage(argv[0]);
 
-	if (nftw(argv[optind], checkfile, MAXOPENFD, FTW_MOUNT|FTW_PHYS) < 0)
+	chdir(argv[optind]);
+#ifdef WITH_DEDUP
+	if (rebuild_dedup_db) {
+		unlink(DEDUP_DB_FILE);
+		dedup_init_db();
+	}
+#endif
+	if (nftw(".", checkfile, MAXOPENFD, FTW_MOUNT|FTW_PHYS) < 0)
 	{
 		perror("nftw");
 		exit(1);
 	}
+#ifdef WITH_DEDUP
+	if (rebuild_dedup_db) {
+		dedup_save();
+	}
+#endif
+
 	if (warnings) fprintf(stderr, "%d warnings\n", warnings);
 	if (!errors_found) {
 		fprintf(stderr, "no errors found\n");
