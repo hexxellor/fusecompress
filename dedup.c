@@ -145,7 +145,7 @@ int dedup_hash_file(const char *name, unsigned char *md5)
   for(;;) {
     count = read(fd, buf, 4096);
     if (count < 0) {
-      DEBUG_("read failed on '%s' while deduping", file->filename);
+      DEBUG_("read failed on '%s' while deduping", name);
       failed = 1;
       break;
     }
