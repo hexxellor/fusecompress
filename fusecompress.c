@@ -178,8 +178,8 @@ static int fusecompress_readdir(const char *path, void *buf, fuse_fill_dir_t fil
 		if (strstr(de->d_name, FUSE))
 			continue;
 		
-		/* ignore dedup DB */
-		if (!strcmp(de->d_name, DEDUP_DB_FILE))
+		/* ignore internal use files */
+		if (!strncmp(de->d_name, FUSECOMPRESS_PREFIX, sizeof(FUSECOMPRESS_PREFIX) - 1))
 			continue;
 
 		memset(&st, 0, sizeof(st));
