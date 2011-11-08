@@ -18,7 +18,7 @@ rm -fr test/bin
 for c in lzo null gz bz2 lzma
 do
   echo --- $c
-  for l in `seq 1 9`
+  for l in 1 3 5 7 9
   do
           ../fusecompress -d -c $c -l $l test
           try
