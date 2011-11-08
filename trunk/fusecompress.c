@@ -176,10 +176,6 @@ static int fusecompress_readdir(const char *path, void *buf, fuse_fill_dir_t fil
 	{
 		struct stat st;
 
-		/* ignore our temporary files */
-		if (strstr(de->d_name, TEMP))
-			continue;
-
 		/* ignore FUSE temporary files */
 		if (strstr(de->d_name, FUSE))
 			continue;

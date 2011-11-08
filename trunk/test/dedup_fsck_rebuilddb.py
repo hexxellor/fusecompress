@@ -25,7 +25,7 @@ if os.system('../fsck.fusecompress -v -r test') != 0:
   os.abort()
 
 # check if it's there
-if not os.path.exists('test/._.fusecompress_dedup_db'):
+if not os.path.exists('test/._fCdedup_db'):
   os.abort()
 
 # mount the filesystem with dedup
