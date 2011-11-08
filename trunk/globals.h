@@ -41,6 +41,7 @@ void *thread_compress(void *arg);
 #define TEMP "._.tmp"		/* Template is: ._.tmpXXXXXX */
 #define FUSE ".fuse_hidden"	/* Temporary FUSE file */
 #define DEDUP_DB_FILE FUSECOMPRESS_PREFIX "compress_dedup_db"
+#define DEDUP_ATTR FUSECOMPRESS_PREFIX "attr_"
 
 extern char compresslevel[];
 #define COMPRESSLEVEL_BACKGROUND (compresslevel) /* See above, this is for background compress */

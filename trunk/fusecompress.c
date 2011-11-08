@@ -73,7 +73,13 @@ static int fusecompress_getattr(const char *path, struct stat *stbuf)
 
 	DEBUG_("('%s')", full);
 
-	res = lstat(full, stbuf);
+#ifdef WITH_DEDUP
+	if (dedup_enabled)
+		res = dedup_sys_getattr(full, stbuf);
+	else
+#endif
+		res = lstat(full, stbuf);
+
 	if (res == FAIL)
 	{
 		return -errno;
@@ -305,14 +311,19 @@ static int fusecompress_unlink(const char *path)
 
 	file = direct_open(full, TRUE);
 
+	int res;
 #ifdef WITH_DEDUP
 	/* file is no longer available, make sure we don't use it
 	   as a link target */
-	if (dedup_enabled)
+	if (dedup_enabled) {
 		dedup_discard(file);
+		res = dedup_sys_unlink(full);
+	}
+	else
 #endif
+		res = unlink(full);
 	
-	if (unlink(full) == 0)
+	if (res == 0)
 	{
 		// Mark file as deleted
 		//
@@ -367,32 +378,15 @@ static int fusecompress_rename(const char *from, const char *to)
 	file_from->accesses--;
 	file_to->accesses--;
 
-	int renamed = FALSE;
-	if (dedup_enabled) {
-		/* Work around pants-on-head retarded rename() semantics:
-		   "If oldpath and newpath are existing hard links referring
-		   to the same file, then rename() does nothing, and returns
-		   a success status." */
-		struct stat st_from;
-		/* do we have a source file? */
-		if (lstat(full_from, &st_from) == 0) {
-			/* does it have more than one link? */
-			if (st_from.st_nlink > 1) {
-				/* do we have a destination file? */
-				struct stat st_to;
-				if (lstat(full_to, &st_to) == 0) {
-					/* are the files pointing to the same inode? */
-					if (st_from.st_ino == st_to.st_ino) {
-						/* unlink the source file instead of calling rename() */
-						if (unlink(full_from) == 0)
-							renamed = TRUE;
-					}
-				}
-			}
-		}
-	}
-	
-	if (renamed || rename(full_from, full_to) == 0)
+	int res;
+#ifdef WITH_DEDUP
+	if (dedup_enabled)
+		res = dedup_sys_rename(full_from, full_to);
+	else
+#endif
+		res = rename(full_from, full_to);
+
+	if (res == 0)
 	{
 		// Rename file_from to full_to
 		//
@@ -444,7 +438,15 @@ static int fusecompress_chmod(const char *path, mode_t mode)
 	
 	full = fusecompress_getpath(path);
 
-	if (chmod(full, mode) == FAIL)
+	int res;
+#ifdef WITH_DEDUP
+	if (dedup_enabled)
+		res = dedup_sys_chmod(full, mode);
+	else
+#endif
+		res = chmod(full, mode);
+
+	if (res == FAIL)
 		return -errno;
 	
 	return 0;
@@ -456,7 +458,15 @@ static int fusecompress_chown(const char *path, uid_t uid, gid_t gid)
 	
 	full = fusecompress_getpath(path);
 
-	if (lchown(full, uid, gid) == FAIL)
+	int res;
+#ifdef WITH_DEDUP
+	if (dedup_enabled)
+		res = dedup_sys_chown(full, uid, gid);
+	else
+#endif
+		res = lchown(full, uid, gid);
+
+	if (res == FAIL)
 		return -errno;
 
 	return 0;
@@ -546,10 +556,18 @@ static int fusecompress_utime(const char *path, struct utimbuf *buf)
 		timesval[1].tv_sec = buf->modtime;
 		timesbuf=timesval;
 	}
-		
-	if (lutimes(full,timesbuf) == -1)
+
+	int res;
+#ifdef WITH_DEDUP
+	if (dedup_enabled)
+		res = dedup_sys_utime(full, timesbuf);
+	else
+#endif
+		res = lutimes(full, timesbuf);
+
+	if (res == -1)
  		return -errno;
-	
+
 	return 0;
 }
 

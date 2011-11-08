@@ -23,6 +23,7 @@
 #include "globals.h"
 #include "file.h"
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/statvfs.h>
 #include <utime.h>
 #include <mhash.h>
@@ -47,6 +48,43 @@ void dedup_add(unsigned char *md5, const char *filename)
   list_add_tail(&dp->list_filename_hash, &dedup_database.head_filename[dp->filename_hash & DATABASE_HASH_MASK]);
   list_add_tail(&dp->list_md5, &dedup_database.head_md5[md5_to_hash(md5)]);
   dedup_database.entries++;
+}
+
+/** Get attribute file name.
+ * @param full Full path to file.
+ */
+static char *fuseattr_name(const char *full)
+{
+  char *full_attr = malloc(strlen(full) + sizeof(DEDUP_ATTR) + 1);
+  char *slash = rindex(full, '/');
+  if (!slash) {
+    sprintf(full_attr, DEDUP_ATTR "%s", full);
+  }
+  else {
+    memcpy(full_attr, full, slash - full + 1);
+    full_attr[slash - full + 1] = 0;
+    strcat(full_attr, DEDUP_ATTR);
+    strcat(full_attr, slash + 1);
+  }
+  return full_attr;
+}
+
+/** Create an attribute file with given statistics.
+ * @param full_attr Full path to attribute file as returned by fuseattr_name().
+ * @param st File stats.
+ */
+static int create_attr(const char *full_attr, struct stat *st)
+{
+  int fd = open(full_attr, O_CREAT | O_WRONLY, st->st_mode);
+  if (fd < 0)
+    return fd;
+  fchown(fd, st->st_uid, st->st_gid);
+  struct timespec ts[2];
+  ts[0] = st->st_atim;
+  ts[1] = st->st_mtim;
+  futimens(fd, ts);
+  close(fd);
+  return 0;
 }
 
 /** Hard-link filename to a file from the dedup database with the same MD5
@@ -95,6 +133,28 @@ void hardlink_file(unsigned char *md5, const char *filename)
         }
       }
       else {
+        /* Check if we need an attribute file. */
+        struct stat st_src;
+        struct stat st_target;
+        if (lstat(tmpname, &st_src) < 0) {
+          ERR_("failed to stat '%s'", tmpname);
+        }
+        if (lstat(filename, &st_target) < 0) {
+          ERR_("failed to stat '%s'", filename);
+        }
+        if (st_src.st_uid != st_target.st_uid ||
+            st_src.st_gid != st_target.st_gid ||
+            st_src.st_mode != st_target.st_mode ||
+#ifndef EXACT_ATIME
+            st_src.st_atim.tv_sec != st_target.st_atim.tv_sec ||
+            st_src.st_atim.tv_nsec != st_target.st_atim.tv_nsec ||
+#endif
+            st_src.st_mtim.tv_sec != st_target.st_mtim.tv_sec ||
+            st_src.st_mtim.tv_nsec != st_target.st_mtim.tv_nsec) {
+          char *full_attr = fuseattr_name(filename);
+          create_attr(full_attr, &st_src);
+          free(full_attr);
+        }
         /* Made it, now we can actually unlink the duplicate. */
         if (unlink(tmpname)) {
           ERR_("failed to unlink original file at '%s'", tmpname);
@@ -306,6 +366,11 @@ int do_undedup(file_t *file)
     errno = EIO;
     return FAIL;
   }
+  /* remove attribute file, if any */
+  char *filename_attr = fuseattr_name(file->filename);
+  unlink(filename_attr);
+  free(filename_attr);
+  
   errno = 0;
   return 0;
 }
@@ -538,4 +603,277 @@ void dedup_rename(file_t *from, file_t *to)
     list_add_tail(&dp->list_md5, &dedup_database.head_md5[md5_to_hash(dp->md5)]);
   }
   UNLOCK(&dedup_database.lock);
+}
+
+/** Stat a file, overriding some stats with those of an attribute file if any
+ * @param full Full path to file.
+ * @param stbuf stat() buffer
+ */
+int dedup_sys_getattr(const char *full, struct stat *stbuf)
+{
+  int res;
+  res = lstat(full, stbuf);
+  if (res < 0)
+    return FAIL;
+  /* check if we have an attribute file */
+  char *full_attr = fuseattr_name(full);
+  struct stat st_attr;
+  if (lstat(full_attr, &st_attr) == 0) {
+    /* override the stats from the actual file with those
+       from the attribute file */
+    stbuf->st_uid = st_attr.st_uid;
+    stbuf->st_gid = st_attr.st_gid;
+    stbuf->st_atime = st_attr.st_atime;
+    stbuf->st_atim = st_attr.st_atim;
+    stbuf->st_mtime = st_attr.st_mtime;
+    stbuf->st_mtim = st_attr.st_mtim;
+    stbuf->st_mode = st_attr.st_mode;
+  }
+  free(full_attr);
+  return res;
+}
+
+/** chown() a file, making sure linked files are unchanged by creating
+ * and/or using an attribute file if necessary.
+ * @param full Full path to file.
+ * @param uid user ID
+ * @param gid group ID
+ */
+int dedup_sys_chown(const char *full, uid_t uid, gid_t gid)
+{
+  struct stat st_attr;
+  struct stat st_file;
+
+  if (lstat(full, &st_file) < 0)
+    return FAIL;
+  if (!S_ISREG(st_file.st_mode))
+    return chown(full, uid, gid);
+
+  int res;
+  char *full_attr = fuseattr_name(full);
+  if (lstat(full_attr, &st_attr) == 0) {
+    /* there is an attribute file */
+    if (st_file.st_uid == uid &&
+        st_file.st_gid == gid &&
+#ifdef EXACT_ATIME
+        st_file.st_atim.tv_sec == st_attr.st_atim.tv_sec &&
+        st_file.st_atim.tv_nsec == st_attr.st_atim.tv_nsec &&
+#endif
+        st_file.st_mtim.tv_sec == st_attr.st_mtim.tv_sec &&
+        st_file.st_mtim.tv_nsec == st_attr.st_mtim.tv_nsec &&
+        st_file.st_mode == st_attr.st_mode) {
+      /* this attr file is no longer necessary */
+      unlink(full_attr);
+      res = 0;
+      /* XXX: what about ctime? */
+    }
+    else {
+      /* this attr file is required, update it */
+      res = chown(full_attr, uid, gid);
+    }
+  }
+  else {
+    /* no existing attribute file, check if we need one */
+    struct stat st_file;
+    if (lstat(full, &st_file) < 0)
+      return FAIL;
+    if (st_file.st_nlink > 1 && (st_file.st_uid != uid || st_file.st_gid != gid)) {
+      /* we do */
+      if (create_attr(full_attr, &st_file) < 0)
+        return FAIL;
+      res = chown(full_attr, uid, gid);
+    }
+    else {
+      /* we don't */
+      res = chown(full, uid, gid);
+    }
+  }
+  free(full_attr);
+  return res;
+}
+
+/** chmod() a file, making sure linked files are unchanged by creating
+ * and/or using an attribute file if necessary.
+ * @param full Full path to file.
+ * @param mode File mode.
+ */
+int dedup_sys_chmod(const char *full, mode_t mode)
+{
+  struct stat st_attr;
+  struct stat st_file;
+
+  if (lstat(full, &st_file) < 0)
+    return FAIL;
+  if (!S_ISREG(st_file.st_mode))
+    return chmod(full, mode);
+
+  int res;
+  char *full_attr = fuseattr_name(full);
+  if (lstat(full_attr, &st_attr) == 0) {
+    /* there is an attribute file */
+    if (st_file.st_uid == st_attr.st_uid &&
+        st_file.st_gid == st_attr.st_gid &&
+#ifdef EXACT_ATIME
+        st_file.st_atim.tv_sec == st_attr.st_atim.tv_sec &&
+        st_file.st_atim.tv_nsec == st_attr.st_atim.tv_nsec &&
+#endif
+        st_file.st_mtim.tv_sec == st_attr.st_mtim.tv_sec &&
+        st_file.st_mtim.tv_nsec == st_attr.st_mtim.tv_nsec &&
+        st_file.st_mode == mode) {
+      /* this attr file is no longer necessary */
+      unlink(full_attr);
+      res = 0;
+      /* XXX: what about ctime? */
+    }
+    else {
+      /* this attr file is required, update it */
+      res = chmod(full_attr, mode);
+    }
+  }
+  else {
+    /* no existing attribute file, check if we need one */
+    if (st_file.st_nlink > 1 && st_file.st_mode != mode) {
+      /* we do */
+      if (create_attr(full_attr, &st_file) < 0)
+        return FAIL;
+      res = chmod(full_attr, mode);
+    }
+    else {
+      /* we don't */
+      res = chmod(full, mode);
+    }
+  }
+  free(full_attr);
+  return res;
+}
+
+/** Change file atime/mtime, making sure linked files remain unchanged by
+ * creating and/or using an attribute file if necessary.
+ * @param full Full path to file.
+ * @param tv atime/mtime array
+ */
+int dedup_sys_utime(const char *full, struct timeval *tv)
+{
+  struct stat st_attr;
+  struct stat st_file;
+
+  if (lstat(full, &st_file) < 0)
+    return FAIL;
+  if (!S_ISREG(st_file.st_mode))
+    return lutimes(full, tv);
+
+  int res;
+  char *full_attr = fuseattr_name(full);
+  if (lstat(full_attr, &st_attr) == 0) {
+    /* there is an attribute file */
+    if (st_file.st_uid == st_attr.st_uid &&
+        st_file.st_gid == st_attr.st_gid &&
+#ifdef EXACT_ATIME
+        st_file.st_atim.tv_sec == tv[0].tv_sec &&
+        st_file.st_atim.tv_nsec == tv[0].tv_usec * 1000 &&
+#endif
+        st_file.st_mtim.tv_sec == tv[1].tv_sec &&
+        st_file.st_mtim.tv_nsec == tv[1].tv_usec * 1000 &&
+        st_file.st_mode == st_attr.st_mode) {
+      /* this attr file is no longer necessary */
+      unlink(full_attr);
+      res = 0;
+      /* XXX: what about ctime? */
+    }
+    else {
+      /* this attr file is required, update it */
+      res = lutimes(full_attr, tv);
+    }
+  }
+  else {
+    /* no existing attribute file, check if we need one */
+    struct stat st_file;
+    if (lstat(full, &st_file) < 0)
+      return FAIL;
+    if (st_file.st_nlink > 1 && (
+#ifdef EXACT_ATIME
+        st_file.st_atim.tv_sec != tv[0].tv_sec ||
+        st_file.st_atim.tv_nsec != tv[0].tv_usec * 1000 ||
+#endif
+        st_file.st_mtim.tv_sec != tv[1].tv_sec ||
+        st_file.st_mtim.tv_nsec != tv[1].tv_usec * 1000
+       )) {
+      /* we do */
+      if (create_attr(full_attr, &st_file) < 0)
+        return FAIL;
+      res = lutimes(full_attr, tv);
+    }
+    else {
+      /* we don't */
+      res = lutimes(full, tv);
+    }
+  }
+  free(full_attr);
+  return res;
+}
+
+/** Unlink a file, making sure associated attribute files are removed as well.
+ * @param full Full path to file.
+ */
+int dedup_sys_unlink(const char *full)
+{
+  char *full_attr = fuseattr_name(full);
+  unlink(full_attr);
+  free(full_attr);
+  return unlink(full);
+}
+
+/** Rename a file, working around silly rename() semantics with regard to
+ * hard links and making sure any attribute files are renamed as well.
+ * @param full_from Full path to file to be renamed.
+ * @param full_to Full path to destination.
+ */
+int dedup_sys_rename(const char *full_from, const char *full_to)
+{
+  int res;
+  /* Work around pants-on-head retarded rename() semantics:
+     "If oldpath and newpath are existing hard links referring
+     to the same file, then rename() does nothing, and returns
+     a success status." */
+  struct stat st_from;
+  /* Do we have a source file? */
+  if (lstat(full_from, &st_from) == 0) {
+    /* Only regular files get special treatment. */
+    if (!S_ISREG(st_from.st_mode))
+      return rename(full_from, full_to);
+
+    /* Does it have more than one link? */
+    if (st_from.st_nlink > 1) {
+      /* Do we have a destination file? */
+      struct stat st_to;
+      if (lstat(full_to, &st_to) == 0) {
+        /* Are the files pointing to the same inode? */
+        if (st_from.st_ino == st_to.st_ino) {
+          /* Unlink the source file instead of calling rename(). */
+          res = unlink(full_from);
+          if (res < 0)
+            return res;
+          /* Any attribute files will have to be renamed, though. */
+          char *full_from_attr = fuseattr_name(full_from);
+          char *full_to_attr = fuseattr_name(full_to);
+          /* These files may or may not exist, so we don't check for errors. */
+          rename(full_from_attr, full_to_attr);
+          free(full_from_attr);
+          free(full_to_attr);
+          return res;
+        }
+      }
+    }
+  }
+  /* No hard link, normal procedure. */
+  res = rename(full_from, full_to);
+  if (res < 0)
+    return res;
+  char *full_from_attr = fuseattr_name(full_from);
+  char *full_to_attr = fuseattr_name(full_to);
+  /* These files may or may not exist, so we don't check for errors. */
+  rename(full_from_attr, full_to_attr);
+  free(full_from_attr);
+  free(full_to_attr);
+  return res;
 }
