@@ -2,6 +2,8 @@
 
 # check rename() semantics for deduped files
 
+../fsck.fusecompress --help 2>&1 | grep -q deduplication || exit 2
+
 mkdir test
 cp /bin/sh test/sh1
 ln test/sh1 test/sh2
