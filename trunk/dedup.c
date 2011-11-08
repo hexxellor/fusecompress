@@ -674,9 +674,6 @@ int dedup_sys_chown(const char *full, uid_t uid, gid_t gid)
   }
   else {
     /* no existing attribute file, check if we need one */
-    struct stat st_file;
-    if (lstat(full, &st_file) < 0)
-      return FAIL;
     if (st_file.st_nlink > 1 && (st_file.st_uid != uid || st_file.st_gid != gid)) {
       /* we do */
       if (create_attr(full_attr, &st_file) < 0)
@@ -787,9 +784,6 @@ int dedup_sys_utime(const char *full, struct timeval *tv)
   }
   else {
     /* no existing attribute file, check if we need one */
-    struct stat st_file;
-    if (lstat(full, &st_file) < 0)
-      return FAIL;
     if (st_file.st_nlink > 1 && (
 #ifdef EXACT_ATIME
         st_file.st_atim.tv_sec != tv[0].tv_sec ||
