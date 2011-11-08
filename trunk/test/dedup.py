@@ -21,6 +21,7 @@ os.system('fusermount -u test')
 
 for (dir, subdirs, files) in os.walk('test'):
   for f in files:
+    if f.startswith('._fC'): continue
     s = os.lstat(dir + '/' + f)
     if (not stat.S_ISLNK(s.st_mode)) and s.st_nlink < numcopies:
       print dir + '/' + f, s.st_nlink, 'links'
