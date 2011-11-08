@@ -536,11 +536,14 @@ out:
 static int fusecompress_utime(const char *path, struct utimbuf *buf)
 {
 	const char *full;
+	file_t *file;
 	
 	struct timeval timesval[2];
 	struct timeval *timesbuf=NULL;
 
  	full = fusecompress_getpath(path);
+
+	file = direct_open(full, FALSE);
 
 	DEBUG_("('%s')", full);
 
@@ -560,6 +563,8 @@ static int fusecompress_utime(const char *path, struct utimbuf *buf)
 	else
 #endif
 		res = lutimes(full, timesbuf);
+
+	UNLOCK(&file->lock);
 
 	if (res == -1)
  		return -errno;
