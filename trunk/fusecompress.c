@@ -1243,7 +1243,8 @@ int main(int argc, char *argv[])
 					else if (!strncmp(o, "nocompext=", 10) && strlen(o) > 10) {
 						if (!user_incompressible) user_incompressible = malloc(sizeof(char*) * (nccount + 2));
 						else user_incompressible = realloc(user_incompressible, sizeof(char*) * (nccount + 2));
-						user_incompressible[nccount] = strdup(o + 10);
+						user_incompressible[nccount] = (char *)malloc(strlen(o + 10) + 2);
+						sprintf(user_incompressible[nccount], ".%s", o + 10);
 						DEBUG_("don't compress %s", user_incompressible[nccount]);
 						user_incompressible[nccount + 1] = NULL;
 						nccount++;
