@@ -142,6 +142,7 @@ void hardlink_file(unsigned char *md5, const char *filename)
         if (lstat(filename, &st_target) < 0) {
           ERR_("failed to stat '%s'", filename);
         }
+        DEBUG_("'%s' mtime %zd, '%s' mtime %zd", tmpname, st_src.st_mtime, filename, st_target.st_mtime);
         if (st_src.st_uid != st_target.st_uid ||
             st_src.st_gid != st_target.st_gid ||
             st_src.st_mode != st_target.st_mode ||
@@ -615,10 +616,12 @@ int dedup_sys_getattr(const char *full, struct stat *stbuf)
   res = lstat(full, stbuf);
   if (res < 0)
     return FAIL;
+  DEBUG_("'%s' mtime %zd", full, stbuf->st_mtime);
   /* check if we have an attribute file */
   char *full_attr = fuseattr_name(full);
   struct stat st_attr;
   if (lstat(full_attr, &st_attr) == 0) {
+    DEBUG_("'%s' mtime %zd", full_attr, st_attr.st_mtime);
     /* override the stats from the actual file with those
        from the attribute file */
     stbuf->st_uid = st_attr.st_uid;
@@ -646,12 +649,14 @@ int dedup_sys_chown(const char *full, uid_t uid, gid_t gid)
 
   if (lstat(full, &st_file) < 0)
     return FAIL;
+  DEBUG_("'%s' mtime %zd", full, st_file.st_mtime);
   if (!S_ISREG(st_file.st_mode))
     return chown(full, uid, gid);
 
   int res;
   char *full_attr = fuseattr_name(full);
   if (lstat(full_attr, &st_attr) == 0) {
+     DEBUG_("'%s' mtime %zd", full_attr, st_attr.st_mtime);
     /* there is an attribute file */
     if (st_file.st_uid == uid &&
         st_file.st_gid == gid &&
@@ -701,12 +706,14 @@ int dedup_sys_chmod(const char *full, mode_t mode)
 
   if (lstat(full, &st_file) < 0)
     return FAIL;
+  DEBUG_("'%s' mtime %zd", full, st_file.st_mtime);
   if (!S_ISREG(st_file.st_mode))
     return chmod(full, mode);
 
   int res;
   char *full_attr = fuseattr_name(full);
   if (lstat(full_attr, &st_attr) == 0) {
+    DEBUG_("'%s' mtime %zd", full_attr, st_attr.st_mtime);
     /* there is an attribute file */
     if (st_file.st_uid == st_attr.st_uid &&
         st_file.st_gid == st_attr.st_gid &&
@@ -754,14 +761,17 @@ int dedup_sys_utime(const char *full, struct timeval *tv)
   struct stat st_attr;
   struct stat st_file;
 
+  DEBUG_("supposed to set '%s' to mtime %zd", full, tv[1].tv_sec);
   if (lstat(full, &st_file) < 0)
     return FAIL;
+  DEBUG_("'%s' mtime %zd", full, st_file.st_mtime);
   if (!S_ISREG(st_file.st_mode))
     return lutimes(full, tv);
 
   int res;
   char *full_attr = fuseattr_name(full);
   if (lstat(full_attr, &st_attr) == 0) {
+    DEBUG_("'%s' mtime %zd", full_attr, st_attr.st_mtime);
     /* there is an attribute file */
     if (st_file.st_uid == st_attr.st_uid &&
         st_file.st_gid == st_attr.st_gid &&
@@ -832,6 +842,7 @@ int dedup_sys_rename(const char *full_from, const char *full_to)
   struct stat st_from;
   /* Do we have a source file? */
   if (lstat(full_from, &st_from) == 0) {
+    DEBUG_("'%s' mtime %zd", full_from, st_from.st_mtime);
     /* Only regular files get special treatment. */
     if (!S_ISREG(st_from.st_mode))
       return rename(full_from, full_to);
@@ -841,6 +852,7 @@ int dedup_sys_rename(const char *full_from, const char *full_to)
       /* Do we have a destination file? */
       struct stat st_to;
       if (lstat(full_to, &st_to) == 0) {
+        DEBUG_("'%s' mtime %zd", full_to, st_to.st_mtime);
         /* Are the files pointing to the same inode? */
         if (st_from.st_ino == st_to.st_ino) {
           /* Unlink the source file instead of calling rename(). */
