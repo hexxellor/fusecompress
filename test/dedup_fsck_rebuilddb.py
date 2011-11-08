@@ -6,15 +6,15 @@ import sys
 import time
 import stat
 
+# check if dedup is enabled
+if not 'deduplication' in os.popen('../fsck.fusecompress --help 2>&1').read():
+  sys.exit(2)
+
 os.mkdir('test')
 
 shutil.copy('/bin/sh', 'test/sh1')
 shutil.copy('/bin/sh', 'test/sh2')
 shutil.copy('/bin/ls', 'test/ls')
-
-# check if dedup is enabled
-if not 'deduplication' in os.popen('../fsck.fusecompress --help 2>&1').read():
-  sys.exit(2)
 
 # compress the files
 if os.system('../fusecompress_offline -c gz test') != 0:
