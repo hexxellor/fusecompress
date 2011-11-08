@@ -61,7 +61,7 @@ char *incompressible[] = {
     ".mp3", ".ogg",
     ".avi", ".mov", ".mpg", ".mp4", ".mkv", ".asf", ".flv",
     ".gz", ".bz2", ".zip", ".tgz", ".lzo", ".lzma", ".rar", ".ace", "7z", ".lha",
-    ".lzh", ".chm", ".lrz",
+    ".lzh", ".chm", ".lrz", ".xz",
     ".jpg", ".png", ".gif",
     ".rpm", ".deb",
     NULL
