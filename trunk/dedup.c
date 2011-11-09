@@ -91,8 +91,9 @@ static int create_attr(const char *full_attr, struct stat *st)
  * hash.
  * @param md5 file content's 128-bit MD5 hash
  * @param filename file name
+ * @return TRUE if file was a duplicate and could be deduped, FALSE otherwise
  */
-void hardlink_file(unsigned char *md5, const char *filename)
+int hardlink_file(unsigned char *md5, const char *filename)
 {
   DEBUG_("looking for '%s' in md5 database", filename);
   /* search for entry with matching MD5 hash */
@@ -107,7 +108,7 @@ void hardlink_file(unsigned char *md5, const char *filename)
       if(strcmp(filename, dp->filename) == 0) {
         DEBUG_("second run for '%s', ignoring", filename);
         UNLOCK(&dedup_database.lock);
-        return;
+        return FALSE;
       }
 
       DEBUG_("duping it up with the '%s' man", dp->filename);
@@ -122,7 +123,7 @@ void hardlink_file(unsigned char *md5, const char *filename)
         DEBUG_("renaming '%s' to '%s' failed", filename, tmpname);
         free(tmpname);
         UNLOCK(&dedup_database.lock);
-        return;
+        return FALSE;
       }
 
       /* Try to create the link. */
@@ -131,6 +132,9 @@ void hardlink_file(unsigned char *md5, const char *filename)
         if (rename(tmpname, filename)) {
           ERR_("failed to move original file back");
         }
+        free(tmpname);
+        UNLOCK(&dedup_database.lock);
+        return FALSE;
       }
       else {
         /* Check if we need an attribute file. */
@@ -160,10 +164,10 @@ void hardlink_file(unsigned char *md5, const char *filename)
         if (unlink(tmpname)) {
           ERR_("failed to unlink original file at '%s'", tmpname);
         }
+        free(tmpname);
+        UNLOCK(&dedup_database.lock);
+        return TRUE;
       }
-      free(tmpname);
-      UNLOCK(&dedup_database.lock);
-      return;
     }
   }
   
@@ -172,6 +176,7 @@ void hardlink_file(unsigned char *md5, const char *filename)
   DEBUG_("unique file '%s', adding to dedup DB", filename);
   dedup_add(md5, filename);
   UNLOCK(&dedup_database.lock);
+  return FALSE;
 }
 
 /** Checks if an entry matching the given MD5 hash is in the database.
