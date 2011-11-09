@@ -63,11 +63,11 @@ compressor_t *choose_compressor(const file_t *file)
 
 	/* don't compress already compressed file formats */
         for (ext = incompressible; *ext != NULL; ext++)
-                if (strstr(file->filename, *ext))
+                if (strcasestr(file->filename, *ext))
                         return NULL;
         if (user_incompressible)
                 for (ext = user_incompressible; *ext != NULL; ext++)
-                        if (strstr(file->filename, *ext))
+                        if (strcasestr(file->filename, *ext))
                                 return NULL;
 
 	/* ignore our temporary files */
