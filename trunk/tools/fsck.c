@@ -172,6 +172,10 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	    strncmp(&fpath[ftwbuf->base], FUSE, sizeof(FUSE) - 1) == 0)
 	    	return fix(fd, fpath, STALE_TEMP);
 
+	/* other internal file (attribute file, dedup DB) */
+	if (strncmp(&fpath[ftwbuf->base], FUSECOMPRESS_PREFIX, sizeof(FUSECOMPRESS_PREFIX) - 1) == 0)
+		return 0;
+
 	m[0] = m[1] = m[2] = 0;
 	if (read(fd, m, 3) < 0)
 		return fix(fd, fpath, FAIL_READ);
