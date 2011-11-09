@@ -58,6 +58,7 @@ int errors_fixed = 0;
 int warnings = 0;
 #ifdef WITH_DEDUP
 int rebuild_dedup_db = 0;
+int dedup_now = 0;
 FILE *dedup_db_fp;
 #endif
 
@@ -205,19 +206,25 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 			return fix(fd, fpath, FAIL_CLOSE_DECOMP);
 		
 		if (verbose)
-			fprintf(stderr, "ok\n");
+			fprintf(stderr, "ok");
 	}
 	else if (verbose)
-		fprintf(stderr, "uncompressed file, skipping\n");
+		fprintf(stderr, "uncompressed");
 	
 #ifdef WITH_DEDUP
 	if (rebuild_dedup_db) {
 		unsigned char md5[16];
 		dedup_hash_file(fpath, md5);
-		if (!dedup_db_has(md5))
+		if (dedup_now) {
+			if (hardlink_file(md5, fpath + 2))
+				fprintf(stderr, " deduped");
+		}
+		else if (!dedup_db_has(md5)) {
 			dedup_add(md5, fpath + 2);
+		}
 	}
 #endif
+	fprintf(stderr, "\n");
 
 	close(fd);
 	return 0;
@@ -230,6 +237,7 @@ void usage(char *n)
 	fprintf(stderr, " -p\tFix fixable files\n");
 #ifdef WITH_DEDUP
 	fprintf(stderr, " -r\tRebuild deduplication database\n");
+	fprintf(stderr, " -l\tDeduplicate files while building database\n");
 #endif
 	fprintf(stderr, " -v\tBe verbose\n");
 	exit(1);
@@ -243,7 +251,7 @@ int main(int argc, char **argv)
 	{
 		next_option = getopt(argc, argv, "dpv"
 #ifdef WITH_DEDUP
-		"r"
+		"rl"
 #endif
 		);
 		switch (next_option)
@@ -257,6 +265,9 @@ int main(int argc, char **argv)
 #ifdef WITH_DEDUP
 			case 'r':
 				rebuild_dedup_db = 1;
+				break;
+			case 'l':
+				dedup_now = 1;
 				break;
 #endif
 			case 'v':
