@@ -59,16 +59,9 @@ int compress_testcancel(void *cancel_cookie)
 
 compressor_t *choose_compressor(const file_t *file)
 {
-	char **ext;
-
 	/* don't compress already compressed file formats */
-        for (ext = incompressible; *ext != NULL; ext++)
-                if (strcasestr(file->filename, *ext))
-                        return NULL;
-        if (user_incompressible)
-                for (ext = user_incompressible; *ext != NULL; ext++)
-                        if (strcasestr(file->filename, *ext))
-                                return NULL;
+	if (!is_compressible(file->filename))
+	        return NULL;
 
 	/* ignore our temporary files */
 	if (strstr(file->filename, TEMP))
@@ -81,6 +74,7 @@ compressor_t *choose_compressor(const file_t *file)
 	/* ignore binaries and shared objects when mounted at / or /usr */
 	if (root_fs)
 	{
+	        char **ext;
 		for (ext = mmapped_dirs; *ext != NULL; ext++)
 		{
 			DEBUG_("file->filename %s, ext %s", file->filename, *ext);

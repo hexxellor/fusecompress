@@ -5,7 +5,7 @@
 *
 *
 * Author: Milan Svoboda <milan.svoboda@centrum.cz>, (C) 2005
-* (C) 2009 Ulrich Hecht <uli@suse.de>
+* (C) 2009, 2011 Ulrich Hecht <uli@suse.de>
 *
 * Copyright: See COPYING file that comes with this distribution
 *
@@ -258,4 +258,17 @@ inline void file_close(int *fd)
 	};
 
 	*fd = -1;
+}
+
+int is_compressible(const char *filename)
+{
+        char **ext;
+        for (ext = incompressible; *ext != NULL; ext++)
+                if (strcasestr(filename, *ext))
+                        return FALSE;
+        if (user_incompressible)
+                for (ext = user_incompressible; *ext != NULL; ext++)
+                        if (strcasestr(filename, *ext))
+                                return FALSE;
+        return TRUE;
 }
