@@ -15,4 +15,6 @@ char *file_create_temp(int *fd_temp);
 int file_open(const char *filename, int mode);
 inline void file_close(int *fd);
 
+int is_compressible(const char *filename);
+
 #endif

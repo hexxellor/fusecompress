@@ -86,6 +86,12 @@ int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	if (verbose)
 		fprintf(stderr, "%s: ", fpath);
 
+	if (comp && !is_compressible(&fpath[ftwbuf->base])) {
+		if (verbose)
+			fprintf(stderr, "incompressible\n");
+		return 0;
+	}
+
 	compress_type = is_compressed(fpath);
 	if (compress_type < -1)
 	{
