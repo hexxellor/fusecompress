@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <utime.h>
+#include <signal.h>
 
 /* FIXME: dirty */
 char compresslevel[4] = "wbx";
@@ -54,6 +55,15 @@ int is_compressed(const char *fpath)
 		return buf[3];
 	else
 		return -1;
+}
+
+const char *current_tmp_file = NULL;
+void cleanup_handler(int sig)
+{
+	if (current_tmp_file)
+		unlink(current_tmp_file);
+	signal(sig, SIG_DFL);
+	kill(0, sig);
 }
 
 int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW* ftwbuf)
@@ -119,6 +129,8 @@ int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 		return -1;
 	}
 	tmpname = file_create_temp(&fd_t);
+	current_tmp_file = tmpname;
+
 	if (!tmpname)
 	{
 		fprintf(stderr, "unable to create temporary file for compression\n");
@@ -166,6 +178,9 @@ int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 		perror("failed to rename tempfile");
 		goto out;
 	}
+
+	current_tmp_file = NULL;
+
 	if (lchown(fpath, stbuf_s.st_uid, stbuf_s.st_gid) < 0)
 	{
 		perror("unable to set owner/group");
@@ -257,6 +272,9 @@ int main(int argc, char **argv)
 	if (argc < 1)
 		usage(argv[-optind]);
 
+	signal(SIGINT, cleanup_handler);
+	signal(SIGTERM, cleanup_handler);
+	signal(SIGHUP, cleanup_handler);
 	while (argc)
 	{
 		if (nftw(argv[0], transform, MAXOPENFD, FTW_PHYS) < 0)
