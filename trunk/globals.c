@@ -58,10 +58,11 @@ compressor_t *compressors[5] = {
 };
 
 char *incompressible[] = {
-    ".mp3", ".ogg",
-    ".avi", ".mov", ".mpg", ".mp4", ".mkv", ".asf", ".flv",
-    ".gz", ".bz2", ".zip", ".tgz", ".lzo", ".lzma", ".rar", ".ace", ".7z", ".lha",
-    ".lzh", ".chm", ".lrz", ".xz",
+    ".mp3", ".ogg", ".wma", ".m4a", ".mp2",
+    ".avi", ".mov", ".mpg", ".mpeg", ".mp4", ".m4v", ".mkv", ".asf", ".flv",
+    ".3gp", ".vob", ".wmv",
+    ".gz", ".bz2", ".zip", ".tgz", ".lzo", ".lzma", ".rar", ".ace", ".7z",
+    ".lha", ".lzh", ".chm", ".lrz", ".xz", ".jar", ".odt",
     ".jpg", ".png", ".gif",
     ".rpm", ".deb",
     NULL
