@@ -31,6 +31,7 @@ int compress_testcancel(void *x)
 const unsigned char magic[] = { 037, 0135, 0211 };
 
 compressor_t *comp = NULL;
+compressor_t *recomp = NULL;
 int verbose = 0;
 int errors = 0;
 
@@ -39,24 +40,24 @@ int errors = 0;
 int is_compressed(const char *fpath)
 {
 	int fd;
-	char buf[3] = { 0, 0, 0 };
+	char buf[4] = { 0, 0, 0, 0 };
 	fd = open(fpath, O_RDONLY);
 	if (fd < 0)
-		return -1;
-	if (read(fd, buf, 3) < 0) {
+		return -2;
+	if (read(fd, buf, 4) < 0) {
 		close(fd);
-		return -1;
+		return -2;
 	}
 	close(fd);
 	if (memcmp(magic, buf, 3) == 0)
-		return 1;
+		return buf[3];
 	else
-		return 0;
+		return -1;
 }
 
 int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW* ftwbuf)
 {
-	int compressed;
+	int compress_type;
 	int fd_s, fd_t;
 	struct stat stbuf_s;
 	struct utimbuf utime_s;
@@ -70,21 +71,31 @@ int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	if (verbose)
 		fprintf(stderr, "%s: ", fpath);
 
-	compressed = is_compressed(fpath);
-	if (compressed < 0)
+	compress_type = is_compressed(fpath);
+	if (compress_type < -1)
 	{
 		fprintf(stderr, "failed to check %s for compression status\n", fpath);
 		errors++;
 		return 0;
 	}
 
-	if (comp && compressed)
+	/* if this is the type we are supposed to recompress, decompress
+	   it first */
+	if (comp && recomp && compress_type == recomp->type) {
+		compressor_t *temp = comp;
+		comp = NULL;
+		transform(fpath, sb, typeflag, ftwbuf);
+		comp = temp;
+		compress_type = -1;
+	}
+
+	if (comp && compress_type >= 0)
 	{
 		if (verbose)
 			fprintf(stderr, "compressed already\n");
 		return 0;
 	}
-	if (!comp && !compressed)
+	if (!comp && compress_type < 0)
 	{
 		if (verbose)
 			fprintf(stderr, "uncompressed already\n");
@@ -179,6 +190,7 @@ void usage(char *n)
 {
 	fprintf(stderr, "Usage: %s [OPTIONS] [path...]\n\n", n);
 	fprintf(stderr, " -c lzo/gz/bz2/lzma/null\tCompress file using the given method\n");
+	fprintf(stderr, " -r lzo/gz/bz2/lzma/null\tRecompress file in given format\n");
 	fprintf(stderr, " -l LEVEL\t\t\tSpecifies compression level\n");
 	fprintf(stderr, " -v\t\t\t\tReport progress\n");
 	exit(1);
@@ -192,7 +204,7 @@ int main(int argc, char **argv)
 
 	do
 	{
-		next_option = getopt(argc, argv, "c:l:v");
+		next_option = getopt(argc, argv, "c:l:vr:");
 		switch (next_option)
 		{
 			case 'c':
@@ -207,6 +219,11 @@ int main(int argc, char **argv)
 						compresslevel[2] = '6';
 				}
 
+				break;
+			case 'r':
+				recomp = find_compressor_name(optarg);
+				if (!recomp)
+					usage(argv[0]);
 				break;
 			case 'l':
 				if (strlen(optarg) != 1 || optarg[0] < '1' || optarg[0] > '9')
