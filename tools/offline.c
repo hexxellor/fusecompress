@@ -13,6 +13,7 @@
 #include "../compress_bz2.h"
 #include "../compress_gz.h"
 #include "../file.h"
+#include "../globals.h"
 
 #include <ftw.h>
 #include <stdlib.h>
@@ -66,6 +67,10 @@ int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	compressor_t *decomp;
 
 	if (typeflag != FTW_F)
+		return 0;
+
+	/* internal file (attribute file, dedup DB) */
+	if (strncmp(&fpath[ftwbuf->base], FUSECOMPRESS_PREFIX, sizeof(FUSECOMPRESS_PREFIX) - 1) == 0)
 		return 0;
 
 	if (verbose)
