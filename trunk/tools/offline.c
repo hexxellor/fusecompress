@@ -82,10 +82,15 @@ int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	/* if this is the type we are supposed to recompress, decompress
 	   it first */
 	if (comp && recomp && compress_type == recomp->type) {
-		compressor_t *temp = comp;
+		compressor_t *temp_c = comp;
+		int temp_v = verbose;
 		comp = NULL;
+		if (verbose)
+			fprintf(stderr, "recompress ");
+		verbose = 0;
 		transform(fpath, sb, typeflag, ftwbuf);
-		comp = temp;
+		verbose = temp_v;
+		comp = temp_c;
 		compress_type = -1;
 	}
 
