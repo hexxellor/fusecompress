@@ -1293,14 +1293,12 @@ int main(int argc, char *argv[])
 				
 			case -1:
 				if (no_opt_args == 0) {
-					root = argv[optind];
+					root = argv[optind + no_opt_args];
 					next_option = 0;
-					optind++;
 				}
-				else if (no_opt_args == 1 && argv[optind]) {
-					mountpoint = argv[optind];
+				else if (no_opt_args == 1 && argv[optind + no_opt_args]) {
+					mountpoint = argv[optind + no_opt_args];
 					next_option = 0;
-					optind++;
 				}
 				else if (root != NULL) {
 					/* no more options, root has been specified -> we're good */
