@@ -579,6 +579,11 @@ void dedup_rename(file_t *from, file_t *to)
 {
   /* propagate the dedup status to the new file */
   NEED_LOCK(&to->lock);
+
+  /* after the rename, the "to" file will no longer exist, so we have to
+     remove it from the dedup DB */
+  dedup_discard(to);
+
   DEBUG_("to->deduped %d, from->deduped %d", to->deduped, from->deduped);
   to->deduped = from->deduped;
 
@@ -600,6 +605,7 @@ void dedup_rename(file_t *from, file_t *to)
   /* it's quite possible that an entry is not in the dedup DB yet, it
      may not have been released yet */
   if (found) {
+    /* update with the new file name and add it back to the database */
     /* new filename */
     free(dp->filename);
     dp->filename = strdup(to->filename);
