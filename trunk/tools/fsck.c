@@ -235,8 +235,11 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 		if (verbose)
 			fprintf(stderr, "ok");
 	}
-	else if (verbose)
-		fprintf(stderr, "uncompressed");
+	else {
+		if (verbose)
+			fprintf(stderr, "uncompressed");
+		close(fd);
+	}
 	
 #ifdef WITH_DEDUP
 	if (rebuild_dedup_db) {
@@ -253,7 +256,6 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 #endif
 	fprintf(stderr, "\n");
 
-	close(fd);
 	return 0;
 }
 
