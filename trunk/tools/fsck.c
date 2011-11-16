@@ -24,6 +24,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef WITH_DEDUP
+#include <mhash.h>
+#endif
 
 #define BUFSIZE 131072	/* read buffer size */
 #define MAXOPENFD 400	/* max number of dirs ftw() keeps open */
@@ -180,6 +183,10 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	if (read(fd, m, 3) < 0)
 		return fix(fd, fpath, FAIL_READ);
 
+#ifdef WITH_DEDUP
+	int hashed = FALSE;
+	unsigned char md5[16];
+#endif
 	if (!memcmp(m, magic, 3))
 	{
 		/* compressed file */
@@ -193,6 +200,13 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 		if (!handle)
 			return fix(fd, fpath, FAIL_OPEN_DECOMP);
 
+#ifdef WITH_DEDUP
+		MHASH mh = NULL;
+		if (rebuild_dedup_db) {
+			mh = mhash_init(MHASH_MD5);
+		}
+#endif
+
 		while (size)
 		{
 			res = compr->read(handle, buf, size > BUFSIZE ? BUFSIZE : size);
@@ -200,9 +214,18 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 				return fix(fd, fpath, FAIL_READ_DECOMP);
 			if (res == 0 && size)
 				return fix(fd, fpath, SHORT_READ_DECOMP);
-
+#ifdef WITH_DEDUP
+			if (rebuild_dedup_db)
+				mhash(mh, buf, res);
+#endif
 			size -= res;
 		}
+#ifdef WITH_DEDUP
+		if (rebuild_dedup_db) {
+			mhash_deinit(mh, md5);
+			hashed = TRUE;
+		}
+#endif
 		if (sb->st_size > lseek(fd, 0, SEEK_CUR))
 			return fix(fd, fpath, TRUNCATE_HERE);
 
@@ -217,8 +240,8 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	
 #ifdef WITH_DEDUP
 	if (rebuild_dedup_db) {
-		unsigned char md5[16];
-		dedup_hash_file(fpath, md5);
+		if (!hashed)
+			dedup_hash_file(fpath, md5);
 		if (dedup_now) {
 			if (hardlink_file(md5, fpath + 2))
 				fprintf(stderr, " deduped");
