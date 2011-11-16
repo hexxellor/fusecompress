@@ -256,9 +256,10 @@ int dedup_hash_file(const char *name, unsigned char *md5)
   DEBUG_("hashed %s to %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
          name, md5[0], md5[1], md5[2], md5[3], md5[4], md5[5], md5[6], md5[7], md5[8], md5[9], md5[10], md5[11], md5[12], md5[13], md5[14], md5[15]);
 
-  close(fd);
   if (compressed)
     compr->close(handle);
+  else
+    close(fd);
 
   return failed;
 }
