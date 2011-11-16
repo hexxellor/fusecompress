@@ -282,9 +282,7 @@ file_t *direct_open(const char *filename, int stabile)
 		UNLOCK(&file->lock);
 	}
 
-	LOCK(&comp_database.lock);
 	hysteresis = comp_database.entries;
-	UNLOCK(&comp_database.lock);
 
 	if (database.entries++ > MAX_DATABASE_LEN + hysteresis)
 	{
