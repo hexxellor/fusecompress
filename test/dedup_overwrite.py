@@ -28,7 +28,7 @@ time.sleep(.1)
 assert(open('/bin/sh').read() == open('test/sh2').read())
 
 os.system('fusermount -u test')
-time.sleep(.1)
+time.sleep(1)
 # make sure the files are not linked (previous test could be false
 # positive due to caching issues)
 assert(os.lstat('test/sh1').st_nlink == 1)
