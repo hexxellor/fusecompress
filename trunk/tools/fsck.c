@@ -176,8 +176,10 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	    	return fix(fd, fpath, STALE_TEMP);
 
 	/* other internal file (attribute file, dedup DB) */
-	if (strncmp(&fpath[ftwbuf->base], FUSECOMPRESS_PREFIX, sizeof(FUSECOMPRESS_PREFIX) - 1) == 0)
+	if (strncmp(&fpath[ftwbuf->base], FUSECOMPRESS_PREFIX, sizeof(FUSECOMPRESS_PREFIX) - 1) == 0) {
+		close(fd);
 		return 0;
+	}
 
 	m[0] = m[1] = m[2] = 0;
 	if (read(fd, m, 3) < 0)
