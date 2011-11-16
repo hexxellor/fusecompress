@@ -193,7 +193,7 @@ int dedup_db_has(unsigned char *md5)
   return FALSE;
 }
 
-/** Calculate the MD5 hash of a given file.
+/** Calculate the MD5 hash of the decompressed data in a given file.
  * @param name File name to be hashed.
  * @param md5 16-byte buffer the MD5 hash will be written to.
  */
@@ -203,11 +203,43 @@ int dedup_hash_file(const char *name, unsigned char *md5)
   int fd = open(name, O_RDONLY);
   if (fd < 0)
     return 1;
+
+  /* check if this is a compressed file */
+  int compressed;
+  compressor_t *compr;
+  void *handle = NULL;
+  off_t size;
+  const unsigned char magic[] = { 037, 0135, 0211 };
+  unsigned char m[3];
+  if (read(fd, m, 3) < 0 || memcmp(magic, m, 3)) {
+    /* no magic bytes, this is an uncompressed file */
+    lseek(fd, 0, SEEK_SET);
+    compressed = FALSE;
+  }
+  else {
+    lseek(fd, 0, SEEK_SET);
+    compressed = TRUE;
+    if (file_read_header_fd(fd, &compr, &size) == FAIL) {
+      close(fd);
+      return 1;
+    }
+    handle = compr->open(fd, "r");
+    if (!handle) {
+      close(fd);
+      return 1;
+    }
+  }
+
+  /* hash file contents */
   int count;
   int failed = 0;
   char buf[4096];
   for(;;) {
-    count = read(fd, buf, 4096);
+    if (!compressed)
+      count = read(fd, buf, 4096);
+    else {
+      count = compr->read(handle, buf, 4096);
+    }
     if (count < 0) {
       DEBUG_("read failed on '%s' while deduping", name);
       failed = 1;
@@ -219,8 +251,15 @@ int dedup_hash_file(const char *name, unsigned char *md5)
     /* XXX: It would be good for performance to occasionally check
        file->status & CANCEL. */
   }
+
   mhash_deinit(mh, md5);
+  DEBUG_("hashed %s to %02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X",
+         name, md5[0], md5[1], md5[2], md5[3], md5[4], md5[5], md5[6], md5[7], md5[8], md5[9], md5[10], md5[11], md5[12], md5[13], md5[14], md5[15]);
+
   close(fd);
+  if (compressed)
+    compr->close(handle);
+
   return failed;
 }
 
@@ -415,7 +454,7 @@ void dedup_discard(file_t *file)
 
 #define DEDUP_MAGIC "DEDUP"
 #define DEDUP_MAGIC_SIZE (sizeof(DEDUP_MAGIC) - 1)
-#define DEDUP_VERSION 1
+#define DEDUP_VERSION 2
 
 /** Initialize the deduplication database.
  */
