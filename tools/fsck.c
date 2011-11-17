@@ -64,6 +64,7 @@ int rebuild_dedup_db = 0;
 int dedup_now = 0;
 FILE *dedup_db_fp;
 #endif
+size_t total_size = 0;
 
 /* remove file if unlink_enabled is true */
 void do_unlink(const char *fpath)
@@ -162,6 +163,8 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	if (!S_ISREG(sb->st_mode))
 		return 0;	/* no regular file */
 
+	if (verbose >= 2)
+		fprintf(stderr, "%zd MB ", total_size / 1048576);
 	if (verbose)
 		fprintf(stderr, "checking file %s: ", fpath);
 
@@ -208,7 +211,7 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 			mh = mhash_init(MHASH_MD5);
 		}
 #endif
-
+		total_size += size;
 		while (size)
 		{
 			res = compr->read(handle, buf, size > BUFSIZE ? BUFSIZE : size);
@@ -240,6 +243,8 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	else {
 		if (verbose)
 			fprintf(stderr, "uncompressed");
+		if (verbose >= 2)
+			total_size += lseek(fd, 0, SEEK_END);
 		close(fd);
 	}
 	
@@ -302,7 +307,7 @@ int main(int argc, char **argv)
 				break;
 #endif
 			case 'v':
-				verbose = 1;
+				verbose++;
 				break;
 			case -1:
 				break;
