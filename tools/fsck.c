@@ -41,7 +41,6 @@
 #define SHORT_READ_DECOMP 6
 #define FAIL_CLOSE_DECOMP 7
 #define STALE_TEMP 8
-#define TRUNCATE_HERE 9
 
 /* FIXME: not very clean */
 char compresslevel[] = "wbx";
@@ -79,22 +78,6 @@ void do_unlink(const char *fpath)
 		fprintf(stderr, "%s: not removing file (disabled)\n", fpath);
 }
 
-static int force_truncate(const char* fpath, off_t size)
-{
-	struct stat stbuf;
-	int r;
-	int fd = file_open(fpath, O_RDWR);
-	if (fstat(fd, &stbuf) < 0) {
-		perror("fstat");
-		close(fd);
-		return -1;
-	}
-	r = ftruncate(fd, size);
-	if (r < 0) perror("ftruncate");
-	close(fd);
-	return r;
-}
-
 /* try to fix error on file fpath */
 int fix(int fd, const char *fpath, int error)
 {
@@ -115,16 +98,6 @@ int fix(int fd, const char *fpath, int error)
 		case STALE_TEMP:
 			fprintf(stderr, "%s: stale temporary file\n", fpath);
 			do_unlink(fpath);
-			break;
-			
-		case TRUNCATE_HERE:
-			fprintf(stderr, "%s: garbage data at end of file\n", fpath);
-			if (fix_fixables)
-			{
-				fprintf(stderr, "%s: truncating to correct size\n", fpath);
-				if (!force_truncate(fpath, lseek(fd, 0, SEEK_CUR)))
-					errors_fixed++;
-			}
 			break;
 			
 		default:
@@ -231,9 +204,6 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 			hashed = TRUE;
 		}
 #endif
-		if (sb->st_size > lseek(fd, 0, SEEK_CUR))
-			return fix(fd, fpath, TRUNCATE_HERE);
-
 		if (compr->close(handle) < 0)
 			return fix(fd, fpath, FAIL_CLOSE_DECOMP);
 		
