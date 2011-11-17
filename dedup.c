@@ -141,8 +141,15 @@ int hardlink_file(unsigned char *md5, const char *filename)
         /* Check if we need an attribute file. */
         struct stat st_src;
         struct stat st_target;
-        if (lstat(tmpname, &st_src) < 0) {
-          ERR_("failed to stat '%s'", tmpname);
+        char *full_attr = fuseattr_name(filename);
+        /* try any existing attribute file first */
+        /* no need to merge the stats of the real and the attr file here
+           because all attributes we look at here are in the attribute
+           file; we don't look at size and stuff */
+        if (lstat(full_attr, &st_src) < 0) {
+          if (lstat(tmpname, &st_src) < 0) {
+            ERR_("failed to stat '%s'", tmpname);
+          }
         }
         if (lstat(filename, &st_target) < 0) {
           ERR_("failed to stat '%s'", filename);
@@ -157,10 +164,13 @@ int hardlink_file(unsigned char *md5, const char *filename)
 #endif
             st_src.st_mtim.tv_sec != st_target.st_mtim.tv_sec ||
             st_src.st_mtim.tv_nsec != st_target.st_mtim.tv_nsec) {
-          char *full_attr = fuseattr_name(filename);
           create_attr(full_attr, &st_src);
-          free(full_attr);
         }
+        else {
+          /* no attribute file needed, remove it if present */
+          unlink(full_attr);
+        }
+        free(full_attr);
         /* Made it, now we can actually unlink the duplicate. */
         if (unlink(tmpname)) {
           ERR_("failed to unlink original file at '%s'", tmpname);
