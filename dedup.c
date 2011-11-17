@@ -78,6 +78,7 @@ static int create_attr(const char *full_attr, struct stat *st)
   int fd = open(full_attr, O_CREAT | O_WRONLY, st->st_mode);
   if (fd < 0)
     return fd;
+  fchmod(fd, st->st_mode);
   fchown(fd, st->st_uid, st->st_gid);
   struct timespec ts[2];
   ts[0] = st->st_atim;
