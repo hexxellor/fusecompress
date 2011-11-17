@@ -261,7 +261,8 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 		}
 	}
 #endif
-	fprintf(stderr, "\n");
+	if (verbose)
+		fprintf(stderr, "\n");
 
 	return 0;
 }
