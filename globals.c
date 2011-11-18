@@ -58,13 +58,31 @@ compressor_t *compressors[5] = {
 };
 
 char *incompressible[] = {
-    ".mp3", ".ogg", ".wma", ".m4a", ".mp2",
-    ".avi", ".mov", ".mpg", ".mpeg", ".mp4", ".m4v", ".mkv", ".asf", ".flv",
-    ".3gp", ".vob", ".wmv",
-    ".gz", ".bz2", ".zip", ".tgz", ".lzo", ".lzma", ".rar", ".ace", ".7z",
-    ".lha", ".lzh", ".chm", ".lrz", ".xz", ".jar", ".odt",
-    ".jpg", ".png", ".gif",
-    ".rpm", ".deb",
+    /* audio */
+    ".mp3", ".ogg", ".wma" /* check */, ".m4a", ".mp2",
+    /* media */
+    ".avi", ".mov", ".mpg", ".mpeg", ".mp4", ".m4v", ".mkv", ".asf" /* check */, ".flv",
+    ".3gp" /* check */, ".vob" /* check */, ".swf", ".ogm",
+    /* archives */
+    ".gz", ".bz2", ".zip", ".tgz", ".lzo" /* check */, ".lzma", ".rar", ".ace", ".7z",
+    ".lha", ".lzh" /* check */, ".chm", ".lrz", ".xz", ".odt" /* check */, ".epub", ".xpi" /* check */,
+    ".lzx",
+    /* images, documents */
+    /* (NOT incompressible: .pdf, .gif) */
+    ".jpg", ".png", ".djvu" /* check */, ".cbr", ".cbz",
+    /* software packages */
+    /* (NOT incompressible: .jar (often not or weakly compressed)) */
+    ".rpm", ".deb", ".cab",
+    /* compressed CD images */
+    ".cdz" /* check */, ".cso",
+    /* other */
+    ".torrent",
+    /* on probation */
+    ".pack",	/* git .pack files don't compress, but there may be other
+                   kinds of files with this extension. */
+    ".wmv",	/* Intuitively, you'd say this won't compress at all, but I
+                   have a screencast file here that compresses down to 30%
+                   the original size with LZMA. */
     NULL
 };
 
