@@ -154,11 +154,13 @@ int hardlink_file(unsigned char *md5, const char *filename)
         if (lstat(filename, &st_target) < 0) {
           ERR_("failed to stat '%s'", filename);
         }
-        DEBUG_("'%s' mtime %zd, '%s' mtime %zd", tmpname, st_src.st_mtime, filename, st_target.st_mtime);
+        DEBUG_("'%s/%s' mtime %zd/%zd uid %d gid %d mode %d, '%s' mtime %zd/%zd uid %d gid %d mode %d", tmpname, full_attr,
+               st_src.st_mtim.tv_sec, st_src.st_mtim.tv_nsec, st_src.st_uid, st_src.st_gid, st_src.st_mode,
+               filename, st_target.st_mtim.tv_sec, st_target.st_mtim.tv_nsec, st_target.st_uid, st_target.st_gid, st_target.st_mode);
         if (st_src.st_uid != st_target.st_uid ||
             st_src.st_gid != st_target.st_gid ||
             st_src.st_mode != st_target.st_mode ||
-#ifndef EXACT_ATIME
+#ifdef EXACT_ATIME
             st_src.st_atim.tv_sec != st_target.st_atim.tv_sec ||
             st_src.st_atim.tv_nsec != st_target.st_atim.tv_nsec ||
 #endif
