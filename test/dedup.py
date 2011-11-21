@@ -4,6 +4,7 @@ import os
 import shutil
 import sys
 import stat
+import time
 
 numcopies = 3
 
@@ -18,6 +19,7 @@ for i in range(0, numcopies):
   os.system('cp -a /bin test/bin' + str(i))
 
 os.system('fusermount -u test')
+time.sleep(2)
 
 for (dir, subdirs, files) in os.walk('test'):
   for f in files:
