@@ -246,40 +246,43 @@ file_t *direct_open(const char *filename, int stabile)
 
 	list_for_each_entry_safe(file, safe, &database.head, list)
 	{
-		LOCK(&file->lock);
+	        /* file can only be free()d after it has been removed from the database,
+	           which we have locked, so it's safe to access it for reading without
+	           locking */
+	        if (unlikely(file->filename_hash == hash)) {
+                  LOCK(&file->lock);
 
-//		DEBUG_("%d: ('%s'), size: %lli, deleted: %d",
-//			i++, file->filename, file->size, file->deleted);
+//		  DEBUG_("%d: ('%s'), size: %lli, deleted: %d",
+//			 i++, file->filename, file->size, file->deleted);
 
-		if (unlikely(file->filename_hash == hash) &&
-				  likely((memcmp(file->filename, filename, len) == 0)))
-		{
-			// Return file with lock. This file is requested and that
-			// means that file cannot be in deleted state.
-			//
-			file->deleted = FALSE;
-			UNLOCK(&database.lock);
+                  if (likely((memcmp(file->filename, filename, len) == 0)))
+                  {
+                          // Return file with lock. This file is requested and that
+                          // means that file cannot be in deleted state.
+                          //
+                          file->deleted = FALSE;
+                          UNLOCK(&database.lock);
 
-			if (stabile == TRUE)
-			{
-				// TODO: Caller require stable enviroment. The question is:
-				// does he need decompressed file or would he work with compressed fine?
-				// And has compression been running for a long time? Is it before end or does it
-				// just started now? What is better?
-				//
-				// Caller require stable enviroment - cancel compressing
-				// if it is running now or block until decompression ends...
-				//
-				while (file->status & (COMPRESSING | DECOMPRESSING | DEDUPING))
-				{
-					file->status |= CANCEL;
-					pthread_cond_wait(&file->cond, &file->lock);
-				}
-			}
-			return file;
-		}
-		
-		UNLOCK(&file->lock);
+                          if (stabile == TRUE)
+                          {
+                                  // TODO: Caller require stable enviroment. The question is:
+                                  // does he need decompressed file or would he work with compressed fine?
+                                  // And has compression been running for a long time? Is it before end or does it
+                                  // just started now? What is better?
+                                  //
+                                  // Caller require stable enviroment - cancel compressing
+                                  // if it is running now or block until decompression ends...
+                                  //
+                                  while (file->status & (COMPRESSING | DECOMPRESSING | DEDUPING))
+                                  {
+                                          file->status |= CANCEL;
+                                          pthread_cond_wait(&file->cond, &file->lock);
+                                  }
+                          }
+                          return file;
+                  }
+                  UNLOCK(&file->lock);
+                }
 	}
 
 	hysteresis = comp_database.entries;
@@ -445,7 +448,10 @@ int direct_decompress(file_t *file, descriptor_t *descriptor, void *buffer, size
 		file->size = -1;
 		file->skipped = 0;
 
-		ret = pread(descriptor->fd, buffer, size, offset);
+		int fd = descriptor->fd;
+		UNLOCK(&file->lock);
+		ret = pread(fd, buffer, size, offset);
+		LOCK(&file->lock);
 		if (ret < 0) return ret;
 		else return s + ret;
 	}
@@ -635,8 +641,11 @@ int direct_compress(file_t *file, descriptor_t *descriptor, const void *buffer, 
 		}
 
 		file->size = -1;
-
-		return pwrite(descriptor->fd, buffer, size, offset);
+		int fd = descriptor->fd;
+		UNLOCK(&file->lock);
+		int ret = pwrite(fd, buffer, size, offset);
+		LOCK(&file->lock);
+		return ret;
 	}
 
 	// Open file if neccesary
