@@ -718,10 +718,13 @@ static int fusecompress_read(const char *path, char *buf, size_t size, off_t off
 	if (file->compressor)
 	{
 		res = direct_decompress(file, descriptor, buf, size, offset);
+		UNLOCK(&file->lock);
 	}
 	else
 	{
-		res = pread(descriptor->fd, buf, size, offset);
+		int fd = descriptor->fd;
+		UNLOCK(&file->lock);
+		res = pread(fd, buf, size, offset);
 	}
 
 	if (res == FAIL)
@@ -731,10 +734,9 @@ static int fusecompress_read(const char *path, char *buf, size_t size, off_t off
 		// Read failed, invalidate file size in database. Right value will
 		// be acquired later if needed.
 		//
+		/* XXX: locking? */
 		file->size = -1;
 	}
-
-	UNLOCK(&file->lock);
 
 //	sched_yield();
 	DEBUG_("returning %d",res);
@@ -790,7 +792,10 @@ static int fusecompress_write(const char *path, const char *buf, size_t size,
 	}
 	else
 	{
-		res = pwrite(descriptor->fd, buf, size, offset);
+		int fd = descriptor->fd;
+		UNLOCK(&file->lock);
+		res = pwrite(fd, buf, size, offset);
+		LOCK(&file->lock);
 	}
 
 	if (res == FAIL)
