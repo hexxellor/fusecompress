@@ -32,7 +32,10 @@ os.chmod('test/._fCat_2', 0666)
 open('test/3', 'w').write(text)
 shutil.copystat('test/1', 'test/3')
 open('test/._fCat_3', 'w')
+
 shutil.copystat('test/1', 'test/._fCat_3')
+# shutil.copystat() is apparently crap; workaround:
+assert(os.system('touch -r test/1 test/._fCat_3') == 0)
 
 assert(os.system('strace -f ../fsck.fusecompress -rlv test') == 0)
 
