@@ -326,6 +326,17 @@ int direct_close(file_t *file, descriptor_t *descriptor)
 		descriptor->handle = NULL;
 	}
 
+	/* file->compressor->close() functions sometimes write data in the
+	   compression buffer to disk when, from the user's point of view,
+	   it should have already been written, thereby overwriting the
+	   times the user may have already set manually. We need to restore
+	   them. */
+	if(file->type == WRITE && stret == 0) {
+		utim.actime = stbuf.st_atime;
+		utim.modtime = stbuf.st_mtime;
+		utime(file->filename, &utim);
+	}
+	
 	if (file->accesses == 1)
 	{
 		// There is only one user of this file and he is going to
@@ -335,17 +346,6 @@ int direct_close(file_t *file, descriptor_t *descriptor)
 		file->dontcompress = FALSE;
 	}
 
-	/* file->compressor->close() functions sometimes write data in the
-	   compression buffer to disk when, from the user's point of view,
-	   it should have already been written, thereby overwriting the
-	   times the user may have already set manually. We need to restore
-	   them. */
-	if(!stret) {
-		utim.actime = stbuf.st_atime;
-		utim.modtime = stbuf.st_mtime;
-		utime(file->filename, &utim);
-	}
-	
 	return ret;
 }
 
