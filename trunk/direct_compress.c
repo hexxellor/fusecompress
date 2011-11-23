@@ -39,6 +39,9 @@
 #include "compress.h"
 #include "background_compress.h"
 #include "utils.h"
+#ifdef WITH_DEDUP
+#include "dedup.h"
+#endif
 
 /*  MAX_DATABASE_LEN = When the database has this many entries, we clean the database
 
@@ -205,8 +208,18 @@ file_t* direct_new_file(unsigned int filename_hash, const char *filename, int le
 	file->accesses = 0;
 	file->size = (off_t) -1;	// -1 means unknown file size
 	file->deleted = FALSE;
-	/* assume that a file has been deduped until it's modified */
+#ifdef WITH_DEDUP
+	if (dedup_enabled && dedup_redup && !dedup_db_has_filehash(filename_hash)) {
+	  /* dedupe all files (even unmodified ones) if they are not in the DB yet */
+	  file->deduped = FALSE;
+        }
+        else {
+	  /* assume that a file has been deduped until it's modified */
+          file->deduped = TRUE;
+        }
+#else
 	file->deduped = TRUE;
+#endif
 	file->compressor = NULL;
 	file->type = 0;
 	file->dontcompress = FALSE;

@@ -14,7 +14,8 @@ void dedup_save();
 
 int dedup_hash_file(const char *name, unsigned char *md5);
 void dedup_add(unsigned char *md5, const char *filename);
-int dedup_db_has(unsigned char *md5);
+int dedup_db_has_md5(unsigned char *md5);
+int dedup_db_has_filehash(unsigned int filename_hash);
 void dedup_init_db(void);
 
 int dedup_sys_getattr(const char *full, struct stat *stbuf);

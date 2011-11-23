@@ -17,6 +17,7 @@ extern int max_decomp_cache_size;
 extern size_t dont_compress_beyond;
 
 extern int dedup_enabled;
+extern int dedup_redup;
 
 #define DC_PAGE_SIZE (4096)
 

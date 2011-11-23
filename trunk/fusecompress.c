@@ -1160,6 +1160,7 @@ int main(int argc, char *argv[])
 	max_decomp_cache_size = 100 * 1024 * 1024;
 	dont_compress_beyond = -1;
 	dedup_enabled = FALSE;
+	dedup_redup = FALSE;
 	int no_opt_args = 0;	/* counter for non-option args */
 	
 	do {
@@ -1257,6 +1258,9 @@ int main(int argc, char *argv[])
 #ifdef WITH_DEDUP
 					else if (!strcmp(o, "dedup")) {
 						dedup_enabled = TRUE;
+					}
+					else if (!strcmp(o, "redup")) {
+						dedup_redup = TRUE;
 					}
 #endif
 					else

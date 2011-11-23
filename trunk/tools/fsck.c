@@ -226,7 +226,7 @@ int checkfile(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 			if (hardlink_file(md5, fpath + 2))
 				fprintf(stderr, " deduped");
 		}
-		else if (!dedup_db_has(md5)) {
+		else if (!dedup_db_has_md5(md5)) {
 			dedup_add(md5, fpath + 2);
 		}
 	}
