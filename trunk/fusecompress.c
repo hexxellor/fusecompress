@@ -73,6 +73,22 @@ static int fusecompress_getattr(const char *path, struct stat *stbuf)
 
 	DEBUG_("('%s')", full);
 
+	/* check for magic file */
+	if (full[0] == '_' && full[1] == 'f' && full[2] == 'c') {
+#ifdef WITH_DEDUP
+		if (!strcmp(&full[3], "redupon")) {
+			dedup_redup = TRUE;
+			return -EINPROGRESS;
+		}
+		else if (!strcmp(&full[3], "redupoff")) {
+			dedup_redup = FALSE;
+			return -EINPROGRESS;
+		}
+		else
+#endif
+			return -EINVAL;
+	}
+
 #ifdef WITH_DEDUP
 	if (dedup_enabled)
 		res = dedup_sys_getattr(full, stbuf);
