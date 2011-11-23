@@ -26,6 +26,7 @@ int decomp_cache_size;
 int max_decomp_cache_size;
 
 int dedup_enabled;
+int dedup_redup;
 
 compressor_t *compressor_default = NULL;
 

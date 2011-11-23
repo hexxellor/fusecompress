@@ -195,11 +195,25 @@ int hardlink_file(unsigned char *md5, const char *filename)
 /** Checks if an entry matching the given MD5 hash is in the database.
  * @param md5 MD5 hash.
  */
-int dedup_db_has(unsigned char *md5)
+int dedup_db_has_md5(unsigned char *md5)
 {
   dedup_t *dp;
   list_for_each_entry(dp, &dedup_database.head_md5[md5_to_hash(md5)], list_md5) {
     if (memcmp(md5, dp->md5, 16) == 0) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/** Checks if an entry matching the given file name hash is in the database.
+ * @param filename_hash File name hash.
+ */
+int dedup_db_has_filehash(unsigned int filename_hash)
+{
+  dedup_t *dp;
+  list_for_each_entry(dp, &dedup_database.head_filename[filename_hash & DATABASE_HASH_MASK], list_filename_hash) {
+    if (dp->filename_hash == filename_hash) {
       return TRUE;
     }
   }
