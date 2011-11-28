@@ -343,22 +343,28 @@ int do_undedup(file_t *file)
   
   /* First, check if there is actually something to be done. */
   struct stat st;
-  if (stat(file->filename, &st) < 0)
+  if (lstat(file->filename, &st) < 0)
     return 0;
   if (st.st_nlink < 2)
     return 0;
   
+  struct stat attr_st;
+  char *filename_attr = fuseattr_name(file->filename);
+  if (lstat(filename_attr, &attr_st) < 0) {
+    attr_st = st;
+  }
+
   STAT_(STAT_DO_UNDEDUP);
   
   /* Check if we have enough space on the backing store to undedup. */
   struct statvfs stat;
   if(statvfs(file->filename, &stat) < 0) {
-          errno = EIO;
-          return FAIL;
+    goto out_eio;
   }
   if(stat.f_bsize * stat.f_bavail < st.st_size) {
           if(!(geteuid() == 0 && stat.f_bsize * stat.f_bfree >= st.st_size)) {
                   errno = ENOSPC;
+                  free(filename_attr);
                   return FAIL;
           }
   }
@@ -372,8 +378,7 @@ int do_undedup(file_t *file)
   char *temp = file_create_temp(&fd_out);
   if (fd_out == -1) {
     ERR_("undedup: failed to create temp file");
-    errno = EIO;
-    return FAIL;
+    goto out_eio;
   }
   int fd_in = open(file->filename, O_RDONLY);
   if (fd_in == -1) {
@@ -381,8 +386,7 @@ int do_undedup(file_t *file)
     close(fd_out);
     unlink(temp);
     free(temp);
-    errno = EIO;
-    return FAIL;
+    goto out_eio;
   }
   char buf[4096];
   for(;;) {
@@ -393,8 +397,7 @@ int do_undedup(file_t *file)
       close(fd_out);
       unlink(temp);
       free(temp);
-      errno = EIO;
-      return FAIL;
+      goto out_eio;
     }
     else if (count == 0) /* EOF */
       break;
@@ -404,14 +407,13 @@ int do_undedup(file_t *file)
       close(fd_out);
       unlink(temp);
       free(temp);
-      errno = EIO;
-      return FAIL;
+      goto out_eio;
     }
   }
   close(fd_in);
   /* fix owner and mode of the new file */
-  fchown(fd_out, st.st_uid, st.st_gid);
-  fchmod(fd_out, st.st_mode);
+  fchown(fd_out, attr_st.st_uid, attr_st.st_gid);
+  fchmod(fd_out, attr_st.st_mode);
   close(fd_out);
   
   /* Remove deduplicated link... */
@@ -419,33 +421,35 @@ int do_undedup(file_t *file)
     ERR_("undedup: failed to unlink '%s'", file->filename);
     unlink(temp);
     free(temp);
-    errno = EIO;
-    return FAIL;
+    goto out_eio;
   }
   /* ...and replace it with the new copy. */
   DEBUG_("renaming '%s' to '%s'", temp, file->filename);
   if (rename(temp, file->filename) < 0) {
     ERR_("undedup: failed to rename temp file '%s' to '%s'", temp, file->filename);
     free(temp);
-    errno = EIO;
-    return FAIL;
+    goto out_eio;
   }
   /* fix timestamps */
   struct utimbuf utbuf;
-  utbuf.actime = st.st_atime;
-  utbuf.modtime = st.st_mtime;
+  utbuf.actime = attr_st.st_atime;
+  utbuf.modtime = attr_st.st_mtime;
   if (utime(file->filename, &utbuf) < 0) {
     CRIT_("utime failed on '%s'!", file->filename);
-    errno = EIO;
-    return FAIL;
+    goto out_eio;
   }
+
   /* remove attribute file, if any */
-  char *filename_attr = fuseattr_name(file->filename);
   unlink(filename_attr);
   free(filename_attr);
   
   errno = 0;
   return 0;
+
+out_eio:
+  errno = EIO;
+  free(filename_attr);
+  return FAIL;
 }
 
 /** Remove an entry from the deduplication DB.
