@@ -313,7 +313,10 @@ void do_dedup(file_t *file)
   if (failed) {
     DEBUG_("deduping '%s' failed", file->filename);
     /* While this looks suspicious, it is not a deduplication error, so we
-       don't have to do anything special. */
+       don't have to do anything special. We do, however, have to mark the
+       file as deduplicated because it may be re-added to the database again
+       otherwise, causing an endless loop when unmounting. */
+    file->deduped = TRUE;
     return;
   }
   if (!(file->status & CANCEL)) {
