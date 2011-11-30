@@ -122,7 +122,6 @@ void *thread_compress(void *arg)
 		// We have file, we can delete and free entry
 		//
 		list_del(&entry->list);
-		free(entry);
 		comp_database.entries--;
 
 		UNLOCK(&comp_database.lock);
@@ -164,6 +163,7 @@ void *thread_compress(void *arg)
 			}
 		}
 #endif
+		free(entry);
 
 		// Restore entry->accesses to original value
 		// (@see background_compress_dedup())
