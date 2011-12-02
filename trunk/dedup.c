@@ -238,7 +238,7 @@ int dedup_hash_file(const char *name, unsigned char *md5)
   off_t size;
   const unsigned char magic[] = { 037, 0135, 0211 };
   unsigned char m[3];
-  if (read(fd, m, 3) < 0 || memcmp(magic, m, 3)) {
+  if (read(fd, m, 3) != 3 || memcmp(magic, m, 3)) {
     /* no magic bytes, this is an uncompressed file */
     lseek(fd, 0, SEEK_SET);
     compressed = FALSE;
