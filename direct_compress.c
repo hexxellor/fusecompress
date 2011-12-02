@@ -130,7 +130,8 @@ void _direct_open_purge(int force)
 				background_compress(file);
 			}
 #ifdef WITH_DEDUP
-			else if (dedup_enabled && !file->deleted && !file->deduped) {
+                          else if (dedup_enabled && !file->deleted && !file->deduped &&
+                                   !is_excluded(file->filename)) {
                                 DEBUG_("deduplicating file in background");
                                 background_dedup(file);
 			}

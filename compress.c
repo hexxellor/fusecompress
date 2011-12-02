@@ -71,6 +71,10 @@ compressor_t *choose_compressor(const file_t *file)
 	if (strstr(file->filename, FUSE))
 		return NULL;
 
+        /* ignore explicitly excluded paths */
+        if (is_excluded(file->filename))
+                return NULL;
+
 	/* ignore binaries and shared objects when mounted at / or /usr */
 	if (root_fs)
 	{

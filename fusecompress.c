@@ -1156,6 +1156,7 @@ int main(int argc, char *argv[])
 	char             *o;
 	int               ret;
 	int		  nccount = 0;
+	int excount = 0;
 	
 #ifdef DEBUG
 	FILE* debugout = stderr;
@@ -1285,6 +1286,17 @@ int main(int argc, char *argv[])
 						DEBUG_("don't compress %s", user_incompressible[nccount]);
 						user_incompressible[nccount + 1] = NULL;
 						nccount++;
+					}
+					else if (!strncmp(o, "exclude=", 8) && strlen(o) > 8) {
+						if (!user_exclude_paths)
+						  user_exclude_paths = malloc(sizeof(char*) * (excount + 2));
+						else
+						  user_exclude_paths = realloc(user_exclude_paths, sizeof(char*) * (excount + 2));
+						user_exclude_paths[excount] = (char *)malloc(strlen(o + 8) + 1);
+						strcpy(user_exclude_paths[excount], o + 8);
+						DEBUG_("don't compress/dedup prefix %s", user_exclude_paths[excount]);
+						user_exclude_paths[excount + 1] = NULL;
+						excount++;
 					}
 #ifdef WITH_DEDUP
 					else if (!strcmp(o, "dedup")) {
@@ -1501,6 +1513,12 @@ trysomethingelse:
 		char **s;
 		for (s = user_incompressible; *s; s++) free(*s);
 		free(user_incompressible);
+	}
+	if (user_exclude_paths) {
+	  char **s;
+	  for (s = user_exclude_paths; *s; s++)
+	    free(*s);
+	  free(user_exclude_paths);
 	}
 	
 	return ret;

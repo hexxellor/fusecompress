@@ -16,5 +16,6 @@ int file_open(const char *filename, int mode);
 inline void file_close(int *fd);
 
 int is_compressible(const char *filename);
+int is_excluded(const char *filename);
 
 #endif
