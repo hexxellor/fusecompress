@@ -558,6 +558,7 @@ void dedup_load(const char *root)
       goto out;
     }
     dp->filename[filename_length] = 0;	/* string termination */
+
     /* read MD5 hash */
     if (fread(dp->md5, 16, 1, db_fp) != 1) {
       ERR_("failed to load MD5 for %s", dp->filename);
@@ -565,6 +566,14 @@ void dedup_load(const char *root)
       free(dp);
       goto out;
     }
+
+    /* ignore files in exluded paths */
+    if (is_excluded(dp->filename)) {
+      free(dp->filename);
+      free(dp);
+      continue;
+    }
+
     int len;
     dp->filename_hash = gethash(dp->filename, &len);
 

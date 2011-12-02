@@ -29,6 +29,7 @@ extern compressor_t *compressor_default;
 extern compressor_t *compressors[5];
 extern char *incompressible[];
 extern char **user_incompressible;
+extern char **user_exclude_paths;
 extern char *mmapped_dirs[];
 
 extern database_t database;

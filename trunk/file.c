@@ -272,3 +272,15 @@ int is_compressible(const char *filename)
                                 return FALSE;
         return TRUE;
 }
+
+int is_excluded(const char *filename)
+{
+  char **dir;
+  if (user_exclude_paths) {
+    for (dir = user_exclude_paths; *dir != NULL; dir++) {
+      if (strncmp(filename, *dir, strlen(*dir)) == 0)
+        return TRUE;
+    }
+  }
+  return FALSE;
+}
