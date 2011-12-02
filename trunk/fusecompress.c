@@ -84,6 +84,17 @@ static int fusecompress_getattr(const char *path, struct stat *stbuf)
 			dedup_redup = FALSE;
 			return -EINPROGRESS;
 		}
+		else if (!strcmp(&full[3], "stat")) {
+                  stbuf->st_size = 0;
+                  stbuf->st_mode = S_IFREG;
+                  stbuf->st_nlink = comp_database.entries;
+#ifdef WITH_DEDUP
+                  stbuf->st_blocks = dedup_database.entries;
+#else
+                  stbuf->st_blocks = 0;
+#endif
+                  return 0;
+                }
 		else
 #endif
 			return -EINVAL;
