@@ -102,7 +102,6 @@ void _direct_open_purge(int force)
 
 	list_for_each_entry_safe(file, safe, &database.head, list)
 	{
-		LOCK(&file->lock);
 
 		DEBUG_("('%s'), accesses: %d, deleted: %d, compressor: %p, size: %zi",
 				file->filename, file->accesses, file->deleted,
@@ -110,48 +109,54 @@ void _direct_open_purge(int force)
 
 		if (file->accesses == 0)
 		{
-			// Check if file should be compressed
-			//
-			// file must not be deleted, must not have assigned a compressor,
-			// must be bigger than minimal size or have unknown size ( == 0) and
-			// compressor can be assigned with this file.
-			// Also, the backing FS must have at least enough space to store the
-			// file uncompressed (worst case).
-			struct statvfs stat;
-			if ((!file->deleted) &&
-			    (!file->compressor) &&
-			    ((file->size == (off_t) -1) || (file->size > min_filesize_background)) &&
-			    statvfs(file->filename, &stat) == 0 &&
-			    (stat.f_bsize * stat.f_bavail >= file->size || (geteuid() == 0 && stat.f_bsize * stat.f_bfree >= file->size)) &&
-			    !read_only &&
-			    choose_compressor(file))
-			{
-				DEBUG_("compress file in background");
-				background_compress(file);
-			}
+		        LOCK(&file->lock);
+		        /* check again after locking */
+		        if (file->accesses == 0) {
+                          // Check if file should be compressed
+                          //
+                          // file must not be deleted, must not have assigned a compressor,
+                          // must be bigger than minimal size or have unknown size ( == 0) and
+                          // compressor can be assigned with this file.
+                          // Also, the backing FS must have at least enough space to store the
+                          // file uncompressed (worst case).
+                          struct statvfs stat;
+                          if ((!file->deleted) &&
+                              (!file->compressor) &&
+                              ((file->size == (off_t) -1) || (file->size > min_filesize_background)) &&
+                              statvfs(file->filename, &stat) == 0 &&
+                              (stat.f_bsize * stat.f_bavail >= file->size || (geteuid() == 0 && stat.f_bsize * stat.f_bfree >= file->size)) &&
+                              !read_only &&
+                              choose_compressor(file))
+                          {
+                                  DEBUG_("compress file in background");
+                                  background_compress(file);
+                          }
 #ifdef WITH_DEDUP
                           else if (dedup_enabled && !file->deleted && !file->deduped &&
                                    !is_excluded(file->filename)) {
-                                DEBUG_("deduplicating file in background");
-                                background_dedup(file);
-			}
+                                  DEBUG_("deduplicating file in background");
+                                  background_dedup(file);
+                          }
 #endif
-			else
-			{
-				DEBUG_("trim from database");
-				list_del(&file->list);
-				database.entries--;
-	
-				// It's out of the database, so we can destroy it
-				//
-				direct_open_delete(file);
-				continue;
-			}
+                          else
+                          {
+                                  DEBUG_("trim from database");
+                                  list_del(&file->list);
+                                  database.entries--;
+
+                                  // It's out of the database, so we can destroy it
+                                  //
+                                  direct_open_delete(file);
+                                  continue;
+                          }
+                        }
+			UNLOCK(&file->lock);
 		}
 		else
 		{
 			if (force)
 			{
+			        LOCK(&file->lock);
 				DEBUG_("Forcing trim from database");
 				DEBUG_("This could happend only in debug mode, "
 				       "when fusecompress was terminated with "
@@ -169,10 +174,8 @@ void _direct_open_purge(int force)
 				   descriptor won't hurt us. */
 				//direct_open_delete(file);
 				UNLOCK(&file->lock);
-				continue;
 			}
 		}			
-		UNLOCK(&file->lock);
 	}
 }
 
