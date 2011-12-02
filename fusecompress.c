@@ -367,9 +367,13 @@ static int fusecompress_symlink(const char *from, const char *to)
 	const char *full_to;
 	
 	full_to = fusecompress_getpath(to);
+	DEBUG_("('%s' -> '%s')", from, full_to);
 
 	if (symlink(from, full_to) == -1)
 		return -errno;
+
+	struct fuse_context *fc = fuse_get_context();
+	lchown(full_to, fc->uid, fc->gid);
 
 	return 0;
 }
