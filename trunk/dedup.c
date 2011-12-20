@@ -116,23 +116,13 @@ int hardlink_file(unsigned char *md5, const char *filename)
 
       /* We cannot just unlink the duplicate file because some filesystems
          (Btrfs, NTFS) have severe limits on the number of hardlinks per
-         directory or per inode; we therefore rename it first and only delete
-         it once the link has actually been created. */
-      char *tmpname = malloc(strlen(filename) + 12);
-      sprintf(tmpname, "%s.%d", filename, getpid());
-      if (rename(filename, tmpname)) {
-        DEBUG_("renaming '%s' to '%s' failed", filename, tmpname);
-        free(tmpname);
-        UNLOCK(&dedup_database.lock);
-        return FALSE;
-      }
-
-      /* Try to create the link. */
-      if (link(dp->filename, filename)) {
-        DEBUG_("creating hardlink from '%s' to '%s' failed", dp->filename, filename);
-        if (rename(tmpname, filename)) {
-          ERR_("failed to move original file back");
-        }
+         directory or per inode; we therefore create a differently-named
+         link first, and if that succeeds, we move (rename()) it over the
+         existing file. */
+      char *tmpname = malloc(strlen(filename) + 15);
+      sprintf(tmpname, "%s._fC%d", filename, getpid());
+      if (link(dp->filename, tmpname)) {
+        DEBUG_("linking '%s' to '%s' failed", dp->filename, tmpname);
         free(tmpname);
         UNLOCK(&dedup_database.lock);
         return FALSE;
@@ -147,16 +137,16 @@ int hardlink_file(unsigned char *md5, const char *filename)
            because all attributes we look at here are in the attribute
            file; we don't look at size and stuff */
         if (lstat(full_attr, &st_src) < 0) {
-          if (lstat(tmpname, &st_src) < 0) {
-            ERR_("failed to stat '%s'", tmpname);
+          if (lstat(filename, &st_src) < 0) {
+            ERR_("failed to stat '%s'", filename);
           }
         }
-        if (lstat(filename, &st_target) < 0) {
+        if (lstat(tmpname, &st_target) < 0) {
           ERR_("failed to stat '%s'", filename);
         }
-        DEBUG_("'%s/%s' mtime %zd/%zd uid %d gid %d mode %d, '%s' mtime %zd/%zd uid %d gid %d mode %d", tmpname, full_attr,
+        DEBUG_("'%s/%s' mtime %zd/%zd uid %d gid %d mode %d, '%s' mtime %zd/%zd uid %d gid %d mode %d", filename, full_attr,
                st_src.st_mtim.tv_sec, st_src.st_mtim.tv_nsec, st_src.st_uid, st_src.st_gid, st_src.st_mode,
-               filename, st_target.st_mtim.tv_sec, st_target.st_mtim.tv_nsec, st_target.st_uid, st_target.st_gid, st_target.st_mode);
+               tmpname, st_target.st_mtim.tv_sec, st_target.st_mtim.tv_nsec, st_target.st_uid, st_target.st_gid, st_target.st_mode);
         if (st_src.st_uid != st_target.st_uid ||
             st_src.st_gid != st_target.st_gid ||
             st_src.st_mode != st_target.st_mode ||
@@ -173,14 +163,23 @@ int hardlink_file(unsigned char *md5, const char *filename)
           unlink(full_attr);
         }
         free(full_attr);
-        /* Made it, now we can actually unlink the duplicate. */
-        if (unlink(tmpname)) {
-          ERR_("failed to unlink original file at '%s'", tmpname);
+
+        /* Try to move the link over the original file. */
+        if (rename(tmpname, filename)) {
+          DEBUG_("renaming hardlink from '%s' to '%s' failed", tmpname, filename);
+          if (unlink(tmpname)) {
+            ERR_("failed to delete link");
+          }
+          free(tmpname);
+          UNLOCK(&dedup_database.lock);
+          return FALSE;
         }
+
         free(tmpname);
         UNLOCK(&dedup_database.lock);
         return TRUE;
       }
+
     }
   }
   
