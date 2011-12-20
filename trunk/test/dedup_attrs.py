@@ -20,7 +20,7 @@ open('test/2', 'w').write(text1)
 os.chmod('test/2', 0647)
 
 os.system('fusermount -u test')
-time.sleep(.1)
+time.sleep(1)
 
 assert(os.lstat('test/1').st_nlink == 2)
 
