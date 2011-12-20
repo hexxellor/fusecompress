@@ -152,7 +152,7 @@ int hardlink_file(unsigned char *md5, const char *filename)
         if (lstat(tmpname, &st_target) < 0) {
           ERR_("failed to stat '%s'", filename);
         }
-        DEBUG_("'%s/%s' mtime %zd/%zd uid %d gid %d mode %d, '%s' mtime %zd/%zd uid %d gid %d mode %d", filename, full_attr,
+        DEBUG_("'%s // %s' mtime %zd/%zd uid %d gid %d mode %d, '%s' mtime %zd/%zd uid %d gid %d mode %d", filename, full_attr,
                st_src.st_mtim.tv_sec, st_src.st_mtim.tv_nsec, st_src.st_uid, st_src.st_gid, st_src.st_mode,
                tmpname, st_target.st_mtim.tv_sec, st_target.st_mtim.tv_nsec, st_target.st_uid, st_target.st_gid, st_target.st_mode);
         if (st_src.st_uid != st_target.st_uid ||
@@ -756,7 +756,7 @@ int dedup_sys_chown(const char *full, uid_t uid, gid_t gid)
     return FAIL;
   DEBUG_("'%s' mtime %zd", full, st_file.st_mtime);
   if (!S_ISREG(st_file.st_mode))
-    return chown(full, uid, gid);
+    return lchown(full, uid, gid);
 
   int res;
   char *full_attr = fuseattr_name(full);
@@ -779,7 +779,7 @@ int dedup_sys_chown(const char *full, uid_t uid, gid_t gid)
     }
     else {
       /* this attr file is required, update it */
-      res = chown(full_attr, uid, gid);
+      res = lchown(full_attr, uid, gid);
     }
   }
   else {
@@ -788,11 +788,11 @@ int dedup_sys_chown(const char *full, uid_t uid, gid_t gid)
       /* we do */
       if (create_attr(full_attr, &st_file) < 0)
         return FAIL;
-      res = chown(full_attr, uid, gid);
+      res = lchown(full_attr, uid, gid);
     }
     else {
       /* we don't */
-      res = chown(full, uid, gid);
+      res = lchown(full, uid, gid);
     }
   }
   free(full_attr);
