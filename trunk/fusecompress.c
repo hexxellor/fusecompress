@@ -572,12 +572,6 @@ static int fusecompress_utime(const char *path, struct utimbuf *buf)
 	struct timeval timesval[2];
 	struct timeval *timesbuf=NULL;
 
- 	full = fusecompress_getpath(path);
-
-	file = direct_open(full, FALSE);
-
-	DEBUG_("('%s')", full);
-
 	if (buf != NULL)
 	{
 		timesval[0].tv_usec = 0;
@@ -586,6 +580,19 @@ static int fusecompress_utime(const char *path, struct utimbuf *buf)
 		timesval[1].tv_sec = buf->modtime;
 		timesbuf=timesval;
 	}
+
+	full = fusecompress_getpath(path);
+	DEBUG_("('%s')", full);
+
+	struct stat st;
+	if (!lstat(full, &st) && !S_ISREG(st.st_mode)) {
+	  if (lutimes(full, timesbuf) < 0)
+	    return -errno;
+          else
+            return 0;
+	}
+
+	file = direct_open(full, FALSE);
 
 	int res;
 #ifdef WITH_DEDUP
