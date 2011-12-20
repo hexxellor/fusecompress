@@ -28,6 +28,7 @@
 #include <utime.h>
 #include <mhash.h>
 #include <fcntl.h>
+#include <libgen.h>
 
 inline DATABASE_HASH_QUEUE_T md5_to_hash(unsigned char *md5)
 {
@@ -119,8 +120,15 @@ int hardlink_file(unsigned char *md5, const char *filename)
          directory or per inode; we therefore create a differently-named
          link first, and if that succeeds, we move (rename()) it over the
          existing file. */
-      char *tmpname = malloc(strlen(filename) + 15);
-      sprintf(tmpname, "%s._fC%d", filename, getpid());
+      char *tmpname = malloc(strlen(filename) + sizeof(FUSECOMPRESS_PREFIX) + 17);
+      char *dn = strdup(filename);
+      char *dirn = dirname(dn);
+      char *bn = strdup(filename);
+      char *basen = basename(bn);
+      sprintf(tmpname, "%s/" FUSECOMPRESS_PREFIX "t_%s.%d", dirn, basen, getpid());
+      free(bn);
+      free(dn);
+
       if (link(dp->filename, tmpname)) {
         DEBUG_("linking '%s' to '%s' failed", dp->filename, tmpname);
         free(tmpname);
