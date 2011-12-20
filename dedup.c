@@ -182,6 +182,10 @@ int hardlink_file(unsigned char *md5, const char *filename)
           UNLOCK(&dedup_database.lock);
           return FALSE;
         }
+        /* If filename and tmpname are the same inode already, rename() will
+           succeed without removing tmpname, so we better do it ourselves.
+           This happens frequently if redup is enabled. */
+        unlink(tmpname);
 
         free(tmpname);
         UNLOCK(&dedup_database.lock);
