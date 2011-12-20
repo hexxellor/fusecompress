@@ -39,3 +39,5 @@ fsck_fusecompress_SOURCES = $(common_sources) tools/fsck.c
 
 EXTRA_DIST = BUGS
 
+indent:
+	astyle -t8 --brackets=stroustrup --break-closing-brackets --indent-switches --pad-oper --pad-header --unpad-paren --align-pointer=name *.c */*.c *.h */*.h
