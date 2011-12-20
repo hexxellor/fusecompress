@@ -20,7 +20,7 @@ open('test/2', 'w').write(text1)
 os.chmod('test/2', 0600)
 
 os.system('fusermount -u test')
-time.sleep(.1)
+time.sleep(1)
 
 assert(os.lstat('test/1').st_nlink == 2)
 
@@ -35,7 +35,7 @@ assert(stat.S_IMODE(stat1.st_mode) == 0647)
 assert(stat.S_IMODE(stat2.st_mode) == 0600)
 
 os.system('fusermount -u test')
-time.sleep(.1)
+time.sleep(1)
 
 shutil.rmtree('test')
 sys.exit(0)

@@ -35,7 +35,7 @@ if os.system('../fusecompress -o dedup,detach,gz test') != 0:
 # copy another redundant file into the FS
 shutil.copy('/bin/sh', 'test/sh_dup')
 os.system('fusermount -u test')
-time.sleep(.1)
+time.sleep(1)
 
 # check if it has been linked properly
 if os.stat('test/sh_dup').st_nlink < 2:
