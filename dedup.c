@@ -93,9 +93,9 @@ static int create_attr(const char *full_attr, struct stat *st)
  * hash.
  * @param md5 file content's 128-bit MD5 hash
  * @param filename file name
- * @return TRUE if file was a duplicate and could be deduped, FALSE otherwise
+ * @return target file name if file was a duplicate and could be deduped, NULL otherwise
  */
-int hardlink_file(unsigned char *md5, const char *filename)
+const char *hardlink_file(unsigned char *md5, const char *filename)
 {
   DEBUG_("looking for '%s' in md5 database", filename);
   /* search for entry with matching MD5 hash */
@@ -110,7 +110,7 @@ int hardlink_file(unsigned char *md5, const char *filename)
       if(strcmp(filename, dp->filename) == 0) {
         DEBUG_("second run for '%s', ignoring", filename);
         UNLOCK(&dedup_database.lock);
-        return FALSE;
+        return NULL;
       }
 
       DEBUG_("duping it up with the '%s' man", dp->filename);
@@ -133,7 +133,7 @@ int hardlink_file(unsigned char *md5, const char *filename)
         DEBUG_("linking '%s' to '%s' failed", dp->filename, tmpname);
         free(tmpname);
         UNLOCK(&dedup_database.lock);
-        return FALSE;
+        return NULL;
       }
       else {
         /* Check if we need an attribute file. */
@@ -180,16 +180,16 @@ int hardlink_file(unsigned char *md5, const char *filename)
           }
           free(tmpname);
           UNLOCK(&dedup_database.lock);
-          return FALSE;
+          return NULL;
         }
         /* If filename and tmpname are the same inode already, rename() will
            succeed without removing tmpname, so we better do it ourselves.
            This happens frequently if redup is enabled. */
         unlink(tmpname);
-
         free(tmpname);
+
         UNLOCK(&dedup_database.lock);
-        return TRUE;
+        return dp->filename;
       }
 
     }
@@ -200,7 +200,7 @@ int hardlink_file(unsigned char *md5, const char *filename)
   DEBUG_("unique file '%s', adding to dedup DB", filename);
   dedup_add(md5, filename);
   UNLOCK(&dedup_database.lock);
-  return FALSE;
+  return NULL;
 }
 
 /** Checks if an entry matching the given MD5 hash is in the database.
@@ -335,7 +335,19 @@ void do_dedup(file_t *file)
     DEBUG_("MD5 for '%s': %02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
            file->filename, md5[0], md5[1], md5[2], md5[3], md5[4], md5[5], md5[6], md5[7], md5[8],
            md5[9], md5[10], md5[11], md5[12], md5[13], md5[14], md5[15]);
-    hardlink_file(md5, file->filename);
+    const char *target = hardlink_file(md5, file->filename);
+    if (target) {
+        /* file linked to may have a different compressor */
+        compressor_t *c;
+        off_t s;
+        if (file_read_header_name(target, &c, &s) < 0) {
+          ERR_("failed to read '%s' header", target);
+        }
+        else {
+          assert(s == file->size);
+          file->compressor = c;
+        }
+    }
     file->deduped = TRUE;
   }
   else {
