@@ -338,13 +338,12 @@ void do_dedup(file_t *file)
     const char *target = hardlink_file(md5, file->filename);
     if (target) {
         /* file linked to may have a different compressor */
-        compressor_t *c;
+        compressor_t *c = NULL;
         off_t s;
         if (file_read_header_name(target, &c, &s) < 0) {
           ERR_("failed to read '%s' header", target);
         }
         else {
-          assert(s == file->size);
           file->compressor = c;
         }
     }
