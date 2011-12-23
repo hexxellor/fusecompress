@@ -2,7 +2,7 @@
 #include <sys/stat.h>
 #include "structs.h"
 
-int hardlink_file(unsigned char *md5, const char *filename);
+const char *hardlink_file(unsigned char *md5, const char *filename);
 
 void do_dedup(file_t *file);
 int do_undedup(file_t *file);
