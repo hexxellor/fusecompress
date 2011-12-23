@@ -159,6 +159,7 @@ int do_decompress(file_t *file)
 		   we only have to reset the compressor */
 		file->compressor = NULL;
 		file->size = -1; /* is this safe? */
+		file_close(&fd_source);
 		return TRUE;
 	}
 
