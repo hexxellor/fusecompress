@@ -76,7 +76,7 @@ int transform(const char *fpath, const struct stat *sb, int typeflag, struct FTW
 	off_t size;
 	compressor_t *decomp;
 
-	if (typeflag != FTW_F)
+	if (typeflag != FTW_F || !S_ISREG(sb->st_mode))
 		return 0;
 
 	/* internal file (attribute file, dedup DB) */
