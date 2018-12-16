@@ -7,18 +7,18 @@ endif
 
 bin_PROGRAMS = fusecompress fusecompress_offline fsck.fusecompress
 
-common_sources = compress_null.c globals.c file.c log.c
+common_sources = src/compress_null.c src/globals.c src/file.c src/log.c
 if HAVE_ZLIB
-common_sources += compress_gz.c
+common_sources += src/compress_gz.c
 endif
 if HAVE_BZIP2
-common_sources += compress_bz2.c
+common_sources += src/compress_bz2.c
 endif
 if HAVE_LZMA
-common_sources += compress_lzma.c
+common_sources += src/compress_lzma.c
 endif
 if HAVE_LZO2
-common_sources += compress_lzo.c minilzo/lzo.c
+common_sources += src/compress_lzo.c src/minilzo/lzo.c
 endif
 if DEBUG
 AM_CPPFLAGS += -DDEBUG
@@ -26,13 +26,13 @@ else
 AM_CPPFLAGS += -DNDEBUG
 endif
 if DEDUP
-common_sources += dedup.c
+common_sources += src/dedup.c
 AM_CPPFLAGS += -DWITH_DEDUP
 endif
 
-fusecompress_SOURCES = $(common_sources) background_compress.c fusecompress.c compress.c direct_compress.c
-fusecompress_offline_SOURCES = $(common_sources) tools/offline.c
-fsck_fusecompress_SOURCES = $(common_sources) tools/fsck.c
+fusecompress_SOURCES = $(common_sources) src/background_compress.c src/fusecompress.c src/compress.c src/direct_compress.c
+fusecompress_offline_SOURCES = $(common_sources) src/tools/offline.c
+fsck_fusecompress_SOURCES = $(common_sources) src/tools/fsck.c
 
 #fusecompress_LDADD = $(FUSECOMPRESS_LIBS)
 #fusecompress_CFLAGS = $(FUSECOMPRESS_CFLAGS)
