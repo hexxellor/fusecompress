@@ -243,7 +243,7 @@ int file_open(const char *filename, int mode)
 	return fd;
 }
 
-inline void file_close(int *fd)
+void file_close(int *fd)
 {
 	assert(fd);
 	assert(*fd > FAIL);

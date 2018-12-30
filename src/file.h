@@ -13,7 +13,7 @@ int file_read_header_name(const char *name, compressor_t **compressor, off_t *si
 
 char *file_create_temp(int *fd_temp);
 int file_open(const char *filename, int mode);
-inline void file_close(int *fd);
+void file_close(int *fd);
 
 int is_compressible(const char *filename);
 int is_excluded(const char *filename);
